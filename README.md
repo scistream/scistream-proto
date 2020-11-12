@@ -30,16 +30,32 @@ Buffer-and-forward elements are run at the Science DMZ to create bridges between
 * Messages can be lost or corrupted
 
 ### Vocabulary of Messages
-* REQ, ACK
-* MSG, CMD, ERR???
+* **Requests:** { UserReq, ProdReq, ConsReq, ReqExtListeners, ReqIntListeners }
+* **Responses:** { ACK, Response, Error, Listeners, Update, StatusUpdate }
+* **Commands:** { Hello, StartS2DS, StartConn, Connect, Stream, StopStreaming }
 
 ### Message Format
-
+* UserReq (String unique_id, String protocol, uint32 num_conn, String prod_addr, String cons_addr)
+* ProdReq (String unique_id, String protocol, uint32 num_conn)
+* ConsReq (String unique_id, String protocol, uint32 num_conn)
+* ReqExtListeners (uint_32 num_conn)
+* ReqIntListeners (uint_32 num_conn)
+* ACK ()
+* Error (String message)
+* Response (Array[num_conn] tuple(String ip_addr, uint32 port))
+* Listeners (Array[num_conn] tuple(String ip_addr, uint32 port), [Array[num_conn] tuple(String ip_addr, uint32 port)])
+* Update (Dictionary conn_map, String data_conn_key)
+* StatusUpdate (String message)
+* StartS2DS (Dictionary conn_map, String data_conn_key)
+* StartConn (Array[num_conn] tuple(String ip_addr, uint32 port))
+* Connect ([String data_conn_key])
+* Stream ()
+* StopStreaming ()
 
 ### Procedure Rules (Informal)
 1. The user selects producer and consumer facilities, and authenticates with them via S2UC.
 2. S2UC establishes an authenticated connection to (both producer and consumer) S2CS, and sends the “user request” for the streaming job (which contains unique-id, protocol, number of connections, producer address and consumer address)
-3. When ProdApp starts, it connects to producer S2CS and presents the “unique-id”
+3. When ProdApp starts, it connects to producer S2CS and presents the “unique-id” and set of port listeners
 4. If unique-id is valid, S2CS requests num_conn ports from S2DS, whom reserves num_conn ports on gateway nodes depending on availability
 5. Both producer and consumer S2CS send connection information (i.e., IP addresses and ports) for data connections to S2UC
 6. S2UC creates connection map and data connection credentials, and sends them to both producer and consumer S2CS
