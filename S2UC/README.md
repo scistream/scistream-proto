@@ -6,3 +6,7 @@ To easily run on different platforms, as well as to use OAuth redirect for enabl
 We will provide a web API so that user can also run S2UC natively.
 We also plan to develop S2UC as a cloud-based service so that it can be easily deployed.
 To this end, we plan to implement the back-end components with Python and C/C++ and the web front-end components with libraries that utilize JavaScript, HTML, and CSS.
+
+## State Machine
+
+![alt text](figures/s2uc-state-machine.png "S2UC state machine")
