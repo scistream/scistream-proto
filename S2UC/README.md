@@ -9,4 +9,4 @@ To this end, we plan to implement the back-end components with Python and C/C++ 
 
 ## State Machine
 
-![alt text](figures/s2uc-state-machine.png "S2UC state machine")
+![alt text](../figures/s2uc-state-machine.png "S2UC state machine")
