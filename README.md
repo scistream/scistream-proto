@@ -31,8 +31,8 @@ Buffer-and-forward elements are run at the Science DMZ to create bridges between
 
 ### Vocabulary of Messages
 * **Requests:** { UserReq, ProdReq, ConsReq, ReqExtListeners, ReqIntListeners }
-* **Responses:** { ACK, Response, Error, Listeners, Update, StatusUpdate }
-* **Commands:** { Hello, StartS2DS, StartConn, Connect, Stream, StopStreaming }
+* **Responses:** { ACK, Response, ERR, Listeners, Update, StatusUpdate }
+* **Commands:** { Hello, StartS2DS, StopS2DS, StartConn, Connect, ReadyToStream, StopStreaming, Terminate, ProdRel, ConsRel }
 
 ### Message Format
 * UserReq (String unique_id, String protocol, uint32 num_conn, String prod_addr, String cons_addr)
@@ -41,16 +41,20 @@ Buffer-and-forward elements are run at the Science DMZ to create bridges between
 * ReqExtListeners (uint_32 num_conn)
 * ReqIntListeners (uint_32 num_conn)
 * ACK ()
-* Error (String message)
+* ERR (String message)
 * Response (Array[num_conn] tuple(String ip_addr, uint32 port))
 * Listeners (Array[num_conn] tuple(String ip_addr, uint32 port), [Array[num_conn] tuple(String ip_addr, uint32 port)])
-* Update (Dictionary conn_map, String data_conn_key)
+* Update (String unique_id, Dictionary conn_map, String data_conn_key)
 * StatusUpdate (String message)
-* StartS2DS (Dictionary conn_map, String data_conn_key)
+* StartS2DS (String unique_id, Dictionary conn_map, String data_conn_key)
+* StopS2DS (String unique_id, Dictionary conn_map)
 * StartConn (Array[num_conn] tuple(String ip_addr, uint32 port))
 * Connect ([String data_conn_key])
-* Stream ()
+* ReadyToStream ()
 * StopStreaming ()
+* Terminate ()
+* ProdRel (String unique_id)
+* ConsRel (String unique_id)
 
 ### Procedure Rules (Informal)
 1. The user selects producer and consumer facilities, and authenticates with them via S2UC.
