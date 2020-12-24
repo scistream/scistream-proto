@@ -31,21 +31,25 @@ Buffer-and-forward elements are run at the Science DMZ to create bridges between
 
 ### Vocabulary of Messages
 * **Requests:** { UserReq, ProdReq, ConsReq, ReqExtListeners, ReqIntListeners }
-* **Responses:** { ACK, Response, ERR, Listeners, Update, StatusUpdate }
+* **Responses:** { ACK, Response, ERR, ProdListeners, ConsListeners, Update, StatusUpdate }
 * **Commands:** { Hello, StartS2DS, StopS2DS, StartConn, Connect, ReadyToStream, StopStreaming, Terminate, ProdRel, ConsRel }
 
 ### Message Format
-* UserReq (String unique_id, String protocol, uint32 num_conn, String prod_addr, String cons_addr)
-* ProdReq (String unique_id, String protocol, uint32 num_conn)
-* ConsReq (String unique_id, String protocol, uint32 num_conn)
-* ReqExtListeners (uint_32 num_conn)
-* ReqIntListeners (uint_32 num_conn)
+* UserReq (String unique_id, String protocol, uint32 num_conn, float rate, String prod_addr, String cons_addr)
+* ProdReq (String unique_id, String protocol, uint32 num_conn, float rate)
+* ConsReq (String unique_id, String protocol, uint32 num_conn, float rate)
+* ReqExtListeners (uint_32 num_conn, float rate)
+* ReqIntListeners (uint_32 num_conn, float rate)
 * ACK ()
 * ERR (String message)
 * Response (Array[num_conn] tuple(String ip_addr, uint32 port))
-* Listeners (Array[num_conn] tuple(String ip_addr, uint32 port), [Array[num_conn] tuple(String ip_addr, uint32 port)])
+* ProdExtListeners (Array[num_conn] tuple(String ip_addr, uint32 port))
+* ProdIntListeners (Array[num_conn] tuple(String ip_addr, uint32 port))
+* ConsIntListeners (Array[num_conn] tuple(String ip_addr, uint32 port))
+* ConsExtConnectors (Array[num_conn] tuple(String ip_addr, uint32 port))
 * Update (String unique_id, Dictionary conn_map, String data_conn_key)
 * StatusUpdate (String message)
+* Hello (String unique_id, Array[num_conn] tuple(String ip_addr, uint32 port))
 * StartS2DS (String unique_id, Dictionary conn_map, String data_conn_key)
 * StopS2DS (String unique_id, Dictionary conn_map)
 * StartConn (Array[num_conn] tuple(String ip_addr, uint32 port))
