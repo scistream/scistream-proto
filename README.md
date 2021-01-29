@@ -49,7 +49,7 @@ Buffer-and-forward elements are run at the Science DMZ to create bridges between
 * ConsExtConnectors (Array[num_conn] tuple(String ip_addr, uint32 port))
 * Update (String unique_id, Dictionary conn_map, String data_conn_key)
 * StatusUpdate (String message)
-* Hello (String unique_id, Array[num_conn] tuple(String ip_addr, uint32 port))
+* Hello (String unique_id, [Array[num_conn] tuple(String ip_addr, uint32 port)])
 * StartS2DS (String unique_id, Dictionary conn_map, String data_conn_key)
 * StopS2DS (String unique_id, Dictionary conn_map)
 * StartConn (Array[num_conn] tuple(String ip_addr, uint32 port))
