@@ -1,0 +1,7 @@
+{
+    "cmd": "REQ",
+    "num_conn": 1,
+    "rate": 10000,
+    "prod": "localhost:5000",
+    "cons": "localhost:6000"
+}

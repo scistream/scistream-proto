@@ -30,47 +30,35 @@ Buffer-and-forward elements are run at the Science DMZ to create bridges between
 * Messages can be lost or corrupted
 
 ### Vocabulary of Messages
-* **Requests:** { UserReq, ProdReq, ConsReq, ReqExtListeners, ReqIntListeners }
-* **Responses:** { ACK, Response, ERR, ProdListeners, ConsListeners, Update, StatusUpdate }
-* **Commands:** { Hello, StartS2DS, StopS2DS, StartConn, Connect, ReadyToStream, StopStreaming, Terminate, ProdRel, ConsRel }
+* **Requests:** { REQ, ReqListeners }
+* **Responses:** { RESP, ProdLstn }
+* **Commands:** { StartLstn, Hello, UpdateTargets, StartConn, Connect, REL }
 
 ### Message Format
-* UserReq (String unique_id, String protocol, uint32 num_conn, float rate, String prod_addr, String cons_addr)
-* ProdReq (String unique_id, String protocol, uint32 num_conn, float rate)
-* ConsReq (String unique_id, String protocol, uint32 num_conn, float rate)
-* ReqExtListeners (uint_32 num_conn, float rate)
-* ReqIntListeners (uint_32 num_conn, float rate)
-* ACK ()
-* ERR (String message)
-* Response (Array[num_conn] tuple(String ip_addr, uint32 port))
-* ProdExtListeners (Array[num_conn] tuple(String ip_addr, uint32 port))
-* ProdIntListeners (Array[num_conn] tuple(String ip_addr, uint32 port))
-* ConsIntListeners (Array[num_conn] tuple(String ip_addr, uint32 port))
-* ConsExtConnectors (Array[num_conn] tuple(String ip_addr, uint32 port))
-* Update (String unique_id, Dictionary conn_map, String data_conn_key)
-* StatusUpdate (String message)
+* REQ (String unique_id, uint_32 num_conn, float rate, [String role])
+* REL (String unique_id)
+* RESP (String unique_id, String msg, [Array[num_conn] tuple(String ip_addr, uint32 port)])
 * Hello (String unique_id, [Array[num_conn] tuple(String ip_addr, uint32 port)])
-* StartS2DS (String unique_id, Dictionary conn_map, String data_conn_key)
-* StopS2DS (String unique_id, Dictionary conn_map)
-* StartConn (Array[num_conn] tuple(String ip_addr, uint32 port))
-* Connect ([String data_conn_key])
-* ReadyToStream ()
-* StopStreaming ()
-* Terminate ()
-* ProdRel (String unique_id)
-* ConsRel (String unique_id)
+* ProdLstn (String unique_id, Array[num_conn] tuple(String ip_addr, uint32 port))
+* UpdateTargets (Dict ConnectionMap, String data_conn_key)
+* ERROR (String unique_id, String msg)
 
 ### Procedure Rules (Informal)
-1. The user selects producer and consumer facilities, and authenticates with them via S2UC.
-2. S2UC establishes an authenticated connection to (both producer and consumer) S2CS, and sends the “user request” for the streaming job (which contains unique-id, protocol, number of connections, producer address and consumer address)
-3. When ProdApp starts, it connects to producer S2CS and presents the “unique-id” and set of port listeners
-4. If unique-id is valid, S2CS requests num_conn ports from S2DS, whom reserves num_conn ports on gateway nodes depending on availability
-5. Both producer and consumer S2CS send connection information (i.e., IP addresses and ports) for data connections to S2UC
+0. The user selects producer and consumer facilities, and authenticates with them via S2UC.
+1. S2UC establishes an authenticated connection to (both producer and consumer) S2CS, and sends the “user request” (REQ) for the streaming job (which contains unique-id, protocol, number of connections, streaming rate, producer address and consumer address)
+2. S2CS requests num_conn ports from S2DS, whom reserves num_conn ports on gateway nodes depending on availability
+3. Both producer and consumer S2CS send connection information (i.e., IP addresses and ports) for data connections to S2UC
+4. When ProdApp starts, it connects to producer S2CS and presents the “unique-id” and set of port listeners
+5. Prod S2CS forwards set of port listeners to S2UC
 6. S2UC creates connection map and data connection credentials, and sends them to both producer and consumer S2CS
-7. Both producer and consumer S2DS create bridges between Prod/Cons App and the WAN
+7. Both producer and consumer S2DS create bridges between Prod/Cons App and the WAN (i.e., start buffer-and-forward elements)
 8. ConsApp establishes num_conn data streaming channels
 9. Both S2DS use data connection credentials to establish external (WAN) streaming channel
 10. ProdApp starts streaming task
+
+### Collaboration Diagram
+
+![alt text](figures/collaboration-diagram.png "SciStream collaboration diagram")
 
 ### Sequence Diagram
 

@@ -3,47 +3,156 @@
 """
 
 from transitions import Machine
-from time import sleep
+from optparse import OptionParser
+import time
+import sys
 import random
+import zmq
+import subprocess
+import pickle
+import logging
+import json
+import uuid
+
+#logging.basicConfig(level=logging.INFO)
+
+# Parse command line options and dump results
+def parseOptions():
+    "Parse command line options"
+    parser = OptionParser()
+    parser.add_option('--req-file', dest='req_file', default=None, help='JSON file with user request')
+    (options, args) = parser.parse_args()
+
+    return options, args
 
 class S2UC(Machine):
-    def reserve_resources(self):
-        print("Reserving: Contacting Prod and Cons S2CS...")
-        return random.random() < 0.5
+    def send_req(self, event):
+        req = event.kwargs.get('req')
 
-    def release_resources(self):
-        print("Releasing: Contacting Prod and Cons S2CS...")
+        print("Requesting producer resources...")
+        req["role"] = "PROD"
+        self.prod_soc.send(pickle.dumps(req))
+        self.prod_lstn = pickle.loads(self.prod_soc.recv())
 
-    def commit_resources(self):
-        print("Creating connection map and data connection credentials")
+        print("Requesting consumer resources...")
+        req["role"] = "CONS"
+        self.cons_soc.send(pickle.dumps(req))
+        self.cons_lstn = pickle.loads(self.cons_soc.recv())
 
-    def send_error_msg(self):
-        print("ERROR...")
+    def send_rel(self, event):
+        req = event.kwargs.get('req')
 
-    def send_message(self, msg):
-        print(msg)
+        print("Releasing producer resources...")
+        self.prod_soc.send(pickle.dumps(req))
+        self.prod_resp = pickle.loads(self.prod_soc.recv())
 
-    def __init__(self):
-        states = ['idle', 'processing', 'streaming', 'releasing']
+        print("Releasing consumer resources...")
+        self.cons_soc.send(pickle.dumps(req))
+        self.cons_resp = pickle.loads(self.cons_soc.recv())
+
+        print("Producer response: %s" % self.prod_resp)
+        print("Consumer response: %s" % self.cons_resp)
+
+    def send_update_targets(self, event):
+        targets = event.kwargs.get('targets', None)
+        print("Updating targets: %s" % targets)
+        req = {"cmd": "UpdateTargets"}
+        self.prod_soc.send(pickle.dumps(req))
+        self.prod_resp = pickle.loads(self.prod_soc.recv())
+        self.cons_soc.send(pickle.dumps(req))
+        self.cons_resp = pickle.loads(self.cons_soc.recv())
+        print("Producer response: %s" % self.prod_resp)
+        print("Consumer response: %s" % self.cons_resp)
+
+    def create_conn_map(self, event):
+        # resp = event.kwargs.get('resp', None)
+        # print("Key-value store update: %s" % resp)
+        print("Creating connection map...")
+        print("Producer listeners: %s" % self.prod_lstn)
+        print("Consumer listeners: %s" % self.cons_lstn)
+
+    def __init__(self, prod, cons):
+        self.resp = None
+        self.prod_lstn = None
+        self.cons_lstn = None
+        self.prod_resp = None
+        self.cons_resp = None
+
+        # Create client sockets
+        prod_ctx = zmq.Context()
+        print("Connecting to Producer S2CS...")
+        self.prod_soc = prod_ctx.socket(zmq.REQ)
+        self.prod_soc.connect("tcp://%s" % prod)
+
+        cons_ctx = zmq.Context()
+        print("Connecting to Consumer S2CS...")
+        self.cons_soc = cons_ctx.socket(zmq.REQ)
+        self.cons_soc.connect("tcp://%s" % cons)
+
+        states = ['idle', 'reserving', 'provisioning', 'updating', 'releasing']
 
         transitions = [
-            { 'trigger': 'UserReq', 'source': 'idle', 'dest': 'processing', 'conditions': 'reserve_resources'},
-            { 'trigger': 'UserReq', 'source': 'idle', 'dest': None, 'before': 'send_error_msg'},
-            { 'trigger': 'ReadyToStream', 'source': 'processing', 'dest': 'streaming', 'before': 'send_message'},
-            { 'trigger': 'StopStreaming', 'source': 'streaming', 'dest': 'releasing', 'after': 'release_resources'},
-            { 'trigger': 'Released', 'source': 'releasing', 'dest': 'idle'}
+            { 'trigger': 'SendReq', 'source': 'idle', 'dest': 'reserving', 'after': 'send_req'},
+            { 'trigger': 'SendRel', 'source': 'idle', 'dest': 'releasing', 'after': 'send_rel'},
+            { 'trigger': 'RESP', 'source': 'reserving', 'dest': None},
+            { 'trigger': 'ProdLstn', 'source': 'reserving', 'dest': 'provisioning', 'before': 'create_conn_map'},
+            { 'trigger': 'SendUpdateTargets', 'source': 'provisioning', 'dest': 'updating', 'after': 'send_update_targets'},
+            { 'trigger': 'ERROR', 'source': ['reserving', 'provisioning', 'updating'], 'dest': 'releasing'},
+            { 'trigger': 'RESP', 'source': ['updating', 'releasing'], 'dest': 'idle'},
+            { 'trigger': 'ErrorRel', 'source': 'releasing', 'dest': 'idle'},
         ]
 
-        Machine.__init__(self, states=states, transitions=transitions, initial='idle')
+        Machine.__init__(self, states=states, transitions=transitions, send_event=True, initial='idle')
 
 if __name__ == '__main__':
-    s2uc = S2UC()
-    s2uc.UserReq()
-    if s2uc.state == 'processing':
-        s2uc.ReadyToStream(msg="Ready to Stream")
-        print(s2uc.state)
-        sleep(random.randint(0,5))
-        s2uc.StopStreaming()
-        print(s2uc.state)
-        s2uc.Released()
-    print(s2uc.state)
+    start = time.time()
+    opts, args = parseOptions()
+
+    if opts.req_file != None:
+        with open(opts.req_file, 'r') as f:
+            request = json.load(f)
+        s2uc = S2UC(prod=request['prod'], cons=request['cons'])
+    else:
+        sys.exit("Please provide a JSON file with your request.")
+
+    if request['cmd'] == 'REQ':
+        # User request
+        id = uuid.uuid1()
+        req = {
+                'cmd': request['cmd'],
+                'uid': str(id),
+                'num_conn': request['num_conn'],
+                'rate': request['rate']
+        }
+        s2uc.SendReq(req=req)
+        print("Current state: %s " % s2uc.state)
+        # s2uc.RESP()
+        # s2uc.RESP()
+        s2uc.ProdLstn()
+        print("Current state: %s " % s2uc.state)
+        subprocess.run(['python', '/home/joaquin/workspace/scistream-proto/utils/send_hello.py', '--port', '5000', '--uid', str(id)])
+        subprocess.run(['python', '/home/joaquin/workspace/scistream-proto/utils/send_hello.py', '--port', '6000', '--uid', str(id)])
+        s2uc.SendUpdateTargets()
+        print("Current state: %s " % s2uc.state)
+        s2uc.RESP(resp="Targets updated")
+        print("Current state: %s " % s2uc.state)
+        t = time.time() - start
+        print("*** Process time: %s sec." % t)
+
+    elif request['cmd'] == 'REL':
+        # Release request
+        req = {
+                'cmd': request['cmd'],
+                'uid': request['uid']
+        }
+        s2uc.SendRel(req=req)
+        print("Current state: %s " % s2uc.state)
+        s2uc.RESP(resp="Resources released")
+        print("Current state: %s " % s2uc.state)
+        t = time.time() - start
+        print("*** Process time: %s sec." % t)
+
+    else:
+        t = time.time() - start
+        print("*** Process time: %s sec." % t)
+        sys.exit("Unrecognized command, please use REQ or REL")
