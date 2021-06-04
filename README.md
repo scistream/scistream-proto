@@ -1,5 +1,96 @@
 # SciStream Control Protocol
 
+## Quick Start
+Ensure you have Python 3 and pip3 installed in your environment.
+Install dependencies (ZeroMQ, transitions, and OptionParser) using the following command:
+~~~
+pip install -r requirements.txt
+~~~~
+
+Open two terminal windows and run the following commands to start Prod and Cons S2DS:
+~~~
+python S2DS/s2ds.py --port=5001
+python S2DS/s2ds.py --port=6001
+~~~
+
+Open two other terminals and run the following commands to start Prod and Cons S2CS:
+~~~
+python S2CS/s2cs.py --svr-port=5000 --clt-port=5001
+python S2CS/s2cs.py --svr-port=6000 --clt-port=6001
+~~~
+
+In another terminal, run the following command to test a request (REQ) using the S2UC:
+~~~
+python S2UC/s2uc.py --req-file=S2UC/test_req.json
+~~~
+
+You should see something like this on the S2DS:
+~~~
+S2DS server running on port TCP/5001
+Received request:  {'cmd': 'REQ', 'uid': 'd22dbcb2-c4e3-11eb-8913-4709f8fbb45d', 'num_conn': 1, 'rate': 10000, 'role': 'PROD'}
+Reserving S2DS resources...
+Current state: reserving
+Current state: idle
+Received request:  {'cmd': 'UpdateTargets'}
+Updating targets...
+Current state: updating
+Current state: idle
+~~~
+
+Something like this on the S2CS:
+~~~
+S2CS server running on port TCP/5000
+Connecting to S2DS...
+Received request:  REQ
+Key-value store update: {'d22dbcb2-c4e3-11eb-8913-4709f8fbb45d': {'role': 'PROD', 'num_conn': 1, 'rate': 10000}}
+Requesting resources...
+Current state: reserving
+Current state: listening
+Received request:  Hello
+ACK
+Current state: idle
+Received request:  UpdateTargets
+Unrecognized message
+Targets: A --> B
+Current state: updating
+Unrecognized message
+Current state: idle
+~~~
+
+And something like this for S2UC:
+~~~
+Connecting to Producer S2CS...
+Connecting to Consumer S2CS...
+Requesting producer resources...
+Requesting consumer resources...
+Current state: reserving
+Creating connection map...
+Producer listeners: ['localhost:50000']
+Consumer listeners: ['localhost:60000']
+Current state: provisioning
+Connecting to server...
+Sending Hello...
+Received reply: Sending Prod listeners...
+Connecting to server...
+Sending Hello...
+Received reply: I'm Cons, nothing to send.
+Updating targets: None
+Producer response: Targets updated
+Consumer response: Targets updated
+Current state: updating
+Current state: idle
+*** Process time: 0.18410491943359375 sec.
+~~~
+
+Notice both S2DS and S2CS should return to idle state.
+In another terminal, run the following command to test a release (REL) using the S2UC:
+~~~
+python S2UC/s2uc.py --req-file=S2UC/test_rel.json
+~~~
+
+You should see similar results (i.e., state machines returning to idle state).
+To quit, press Ctrl+C on S2DS/S2CS terminal windows.
+
 ## Motivation
 The SciStream protocol attempts to tackle the problem of enabling high-speed,
 memory-to-memory data streaming in scientific environments.
