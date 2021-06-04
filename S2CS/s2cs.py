@@ -32,7 +32,7 @@ class S2CS(Machine):
             }
             self.kvs[req["uid"]] = entry
             print("Key-value store update: %s" % self.kvs)
-        elif tag == "S2DS_RESP":
+        elif tag == "S2DS_RESP" or tag == "S2UC_UPD":
             pass
         else:
             print("Unrecognized message")
@@ -113,9 +113,9 @@ if __name__ == '__main__':
 
         elif message['cmd'] == 'UpdateTargets':
             # Testing UpdateTargets
-            s2cs.UpdateTargets(req=message, info="Targets: A --> B")
+            s2cs.UpdateTargets(req=message, tag="S2UC_UPD", info="Targets: A --> B")
             print("Current state: %s " % s2cs.state)
-            s2cs.RESP()
+            s2cs.RESP(tag="S2DS_RESP")
             print("Current state: %s " % s2cs.state)
 
         elif message['cmd'] == 'REL':
