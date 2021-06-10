@@ -13,6 +13,7 @@ import pickle
 import logging
 import json
 import uuid
+import os
 
 #logging.basicConfig(level=logging.INFO)
 
@@ -130,8 +131,14 @@ if __name__ == '__main__':
         # s2uc.RESP()
         s2uc.ProdLstn()
         print("Current state: %s " % s2uc.state)
-        subprocess.run(['python', '/home/joaquin/workspace/scistream-proto/utils/send_hello.py', '--port', '5000', '--uid', str(id)])
-        subprocess.run(['python', '/home/joaquin/workspace/scistream-proto/utils/send_hello.py', '--port', '6000', '--uid', str(id)])
+
+        origWD = os.getcwd()
+        print(os.path.abspath(sys.path[0]))
+        os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
+        subprocess.run(['python', 'send_hello.py', '--port', '5000', '--uid', str(id)])
+        subprocess.run(['python', 'send_hello.py', '--port', '6000', '--uid', str(id)])
+        os.chdir(origWD)
+
         s2uc.SendUpdateTargets()
         print("Current state: %s " % s2uc.state)
         s2uc.RESP(resp="Targets updated")
