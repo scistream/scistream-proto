@@ -133,7 +133,6 @@ if __name__ == '__main__':
         print("Current state: %s " % s2uc.state)
 
         origWD = os.getcwd()
-        print(os.path.abspath(sys.path[0]))
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
         subprocess.run(['python', 'send_hello.py', '--port', '5000', '--uid', str(id)])
         subprocess.run(['python', 'send_hello.py', '--port', '6000', '--uid', str(id)])
