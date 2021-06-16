@@ -53,8 +53,7 @@ class S2DS(Machine):
         self.resp = "Resources released"
 
     def bind_listeners(self, event):
-        if (self.is_prod == False):
-            assert self.is_prod == True, "Consumer S2DS received Hello message to bind listeners"
+        assert self.is_prod == True, "Consumer S2DS received Hello message to bind listeners"
         req = event.kwargs.get('req', None)
         print("Binding listeners...")
         # TODO: Check if ports are open
@@ -69,13 +68,13 @@ class S2DS(Machine):
         # TODO: Make parameters configurable and combine repos for reliable relative path
         if (self.is_prod):
             # TODO: Change logic to allow for more than one S2DS subprocess
-            assert self.s2ds_proc == None, "S2DS subprocess already launched! Terminating..."
+            assert self.s2ds_proc == None, "S2DS subprocess already launched!"
             assert self.listeners != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
             origWD = os.getcwd()
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
             self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.listeners[0], '--local-port', '50000', '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
-            print("Starting S2DS subprocess...")
+            print("Starting S2DS subprocess with local-port 50000 and remote-port %s..." % self.listeners[0])
 
     def send_resp(self, event):
         self.socket.send(pickle.dumps(self.resp))
