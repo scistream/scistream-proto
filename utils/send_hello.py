@@ -9,12 +9,13 @@ def parseOptions():
     parser = OptionParser()
     parser.add_option('--port', dest='port', default="5000", help='S2CS server port')
     parser.add_option('--uid', dest='uid', default=None, help='Request\'s unique id')
+    parser.add_option('--listeners', dest='listeners', default=None, help="Port listeners used by ProdAPP")
     (options, args) = parser.parse_args()
     return options, args
 
 opts, args = parseOptions()
 
-message = {"cmd": "Hello", "uid": opts.uid}
+message = {"cmd": "Hello", "uid": opts.uid, "listeners": opts.listeners}
 context = zmq.Context()
 print("Connecting to server...")
 socket = context.socket(zmq.REQ)

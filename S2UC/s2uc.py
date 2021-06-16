@@ -127,16 +127,16 @@ if __name__ == '__main__':
         }
         s2uc.SendReq(req=req)
         print("Current state: %s " % s2uc.state)
-        # s2uc.RESP()
-        # s2uc.RESP()
-        s2uc.ProdLstn()
-        print("Current state: %s " % s2uc.state)
 
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
-        subprocess.run(['python', 'send_hello.py', '--port', '5000', '--uid', str(id)])
+        temp_listeners = ['50000']
+        subprocess.run(['python', 'send_hello.py', '--port', '5000', '--uid', str(id), '--listeners', *temp_listeners])
         subprocess.run(['python', 'send_hello.py', '--port', '6000', '--uid', str(id)])
         os.chdir(origWD)
+
+        s2uc.ProdLstn(listeners=temp_listeners)
+        print("Current state: %s " % s2uc.state)
 
         s2uc.SendUpdateTargets()
         print("Current state: %s " % s2uc.state)
