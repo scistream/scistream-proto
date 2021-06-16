@@ -49,6 +49,7 @@ class S2CS(Machine):
         entry = self.kvs[req["uid"]]
         if entry["role"] == "PROD":
             self.svr_socket.send_string("Sending Prod listeners...")
+            self.fwd_msg(event) # TODO: Security concerns forwarding ProdApp Hello directly to S2DS?
         else:
             self.svr_socket.send_string("I'm Cons, nothing to send.")
 

@@ -12,6 +12,7 @@ import signal
 import sys
 import os
 import subprocess
+import json
 
 # Parse command line options and dump results
 def parseOptions():
@@ -51,6 +52,15 @@ class S2DS(Machine):
 
         self.resp = "Resources released"
 
+    def bind_listeners(self, event):
+        if (self.is_prod == False):
+            assert self.is_prod == True, "Consumer S2DS received Hello message to bind listeners"
+        req = event.kwargs.get('req', None)
+        print("Binding listeners...")
+        # TODO: Check if ports are open
+        self.listeners = json.loads(req["listeners"])
+        print("Binded listeners %s " % self.listeners) # TODO: Not actually bound, but don't think it's possible here...
+
     def update_targets(self, event):
         print("Updating targets...")
         self.resp = "Targets updated"
@@ -58,10 +68,13 @@ class S2DS(Machine):
         # TODO: May want to move functionality somewhere else
         # TODO: Make parameters configurable and combine repos for reliable relative path
         if (self.is_prod):
-            assert self.s2ds_proc == None, "S2DS subprocess already launched!"
+            # TODO: Change logic to allow for more than one S2DS subprocess
+            assert self.s2ds_proc == None, "S2DS subprocess already launched! Terminating..."
+            assert self.listeners != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
             origWD = os.getcwd()
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', '7000', '--local-port', '50000', '--remote-host', '127.0.0.1'])
+            print("self.listeners[0] =", self.listeners[0])
+            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.listeners[0], '--local-port', '50000', '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
             print("Starting S2DS subprocess...")
 
@@ -73,6 +86,7 @@ class S2DS(Machine):
         self.resp = None
         self.s2ds_proc = None
         self.is_prod = False
+        self.listeners = []
         context = zmq.Context()
         self.socket = context.socket(zmq.REP)
         self.socket.bind("tcp://*:%s" % port)
@@ -82,6 +96,7 @@ class S2DS(Machine):
 
         transitions = [
             { 'trigger': 'REQ', 'source': 'idle', 'dest': 'reserving', 'after': 'reserve_resources'},
+            { 'trigger': 'Hello', 'source': 'idle', 'dest': 'updating', 'after': 'bind_listeners'},
             { 'trigger': 'UpdateTargets', 'source': 'idle', 'dest': 'updating', 'after': 'update_targets'},
             { 'trigger': 'REL', 'source': 'idle', 'dest': 'releasing', 'after': 'release_resources'},
             { 'trigger': 'SendResp', 'source': ['reserving', 'updating', 'releasing'], 'dest': 'idle', 'before': 'send_resp'}
@@ -112,6 +127,12 @@ if __name__ == '__main__':
         if message['cmd'] == 'REQ':
             # Testing REQ
             s2ds.REQ(req=message)
+            print("Current state: %s " % s2ds.state)
+            s2ds.SendResp()
+            print("Current state: %s " % s2ds.state)
+
+        elif message['cmd'] == 'Hello':
+            s2ds.Hello(req=message)
             print("Current state: %s " % s2ds.state)
             s2ds.SendResp()
             print("Current state: %s " % s2ds.state)

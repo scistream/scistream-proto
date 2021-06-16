@@ -130,8 +130,8 @@ if __name__ == '__main__':
 
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
-        temp_listeners = ['50000']
-        subprocess.run(['python', 'send_hello.py', '--port', '5000', '--uid', str(id), '--listeners', *temp_listeners])
+        temp_listeners = ['7000']
+        subprocess.run(['python', 'send_hello.py', '--port', '5000', '--uid', str(id), '--listeners', json.dumps(temp_listeners)])
         subprocess.run(['python', 'send_hello.py', '--port', '6000', '--uid', str(id)])
         os.chdir(origWD)
 
