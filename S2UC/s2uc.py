@@ -128,6 +128,7 @@ if __name__ == '__main__':
         s2uc.SendReq(req=req)
         print("Current state: %s " % s2uc.state)
 
+        # TODO: Temporary process to "spawn" ProdApp/ConsApp instances to send Hello requests
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
         temp_listeners = ['7000']

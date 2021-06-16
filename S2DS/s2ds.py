@@ -73,7 +73,6 @@ class S2DS(Machine):
             assert self.listeners != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
             origWD = os.getcwd()
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-            print("self.listeners[0] =", self.listeners[0])
             self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.listeners[0], '--local-port', '50000', '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
             print("Starting S2DS subprocess...")
