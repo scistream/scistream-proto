@@ -131,11 +131,12 @@ if __name__ == '__main__':
         # TODO: Temporary process to "spawn" ProdApp/ConsApp instances to send Hello requests
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
-        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '5000', '--uid', str(id), '--prod-listeners', '7000'])
+        temp_prod_listeners = '7000'
+        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '5000', '--uid', str(id), '--prod-listeners', temp_prod_listeners])
         subprocess.run(['python', 'send_hello.py', '--s2cs-port', '6000', '--uid', str(id)])
         os.chdir(origWD)
 
-        s2uc.ProdLstn(listeners=temp_listeners)
+        s2uc.ProdLstn(listeners=temp_prod_listeners)
         print("Current state: %s " % s2uc.state)
 
         s2uc.SendUpdateTargets()

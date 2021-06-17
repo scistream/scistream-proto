@@ -15,7 +15,7 @@ def parseOptions():
 
 opts, args = parseOptions()
 
-if (prodapp_port != None):
+if (opts.prod_listeners != None):
     message = {"cmd": "Hello", "uid": opts.uid, "prod_listeners": opts.prod_listeners}
 else:
     message = {"cmd": "Hello", "uid": opts.uid}

@@ -52,7 +52,6 @@ class S2CS(Machine):
             self.fwd_msg(event) # TODO: Security concerns forwarding ProdApp Hello directly to S2DS?
         else:
             self.svr_socket.send_string("I'm Cons, nothing to send.")
-            print("Cons Test %s" % event.kwargs)
 
     def send_resp(self, event):
         #resp = event.kwargs.get('resp', None)
