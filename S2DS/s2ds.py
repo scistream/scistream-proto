@@ -33,7 +33,7 @@ class S2DS(Machine):
             pool = "5000"
             self.is_prod = True
         else:
-            pool = "6000"
+            pool = "4000"
 
         if req["num_conn"] > 1:
             for i in range(req["num_conn"]):
@@ -52,13 +52,13 @@ class S2DS(Machine):
 
         self.resp = "Resources released"
 
-    def bind_listeners(self, event):
+    def bind_prod_listeners(self, event):
         assert self.is_prod == True, "Consumer S2DS received Hello message to bind listeners"
         req = event.kwargs.get('req', None)
-        print("Binding listeners...")
+        print("Binding Prod listeners...")
         # TODO: Check if ports are open
-        self.listeners = json.loads(req["listeners"])
-        print("Binded listeners %s " % self.listeners) # TODO: Not actually bound, but don't think it's possible here...
+        self.prod_listener = req["prod_listeners"]
+        print("Binded Prod listeners %s " % self.prod_listener) # TODO: Not actually bound, but don't think it's possible here...
 
     def update_targets(self, event):
         print("Updating targets...")
@@ -69,12 +69,19 @@ class S2DS(Machine):
         if (self.is_prod):
             # TODO: Change logic to allow for more than one S2DS subprocess
             assert self.s2ds_proc == None, "S2DS subprocess already launched!"
-            assert self.listeners != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
+            assert self.prod_listener != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
             origWD = os.getcwd()
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.listeners[0], '--local-port', '50000', '--remote-host', '127.0.0.1'])
+            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.prod_listener, '--local-port', '50000', '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
-            print("Starting S2DS subprocess with local-port 50000 and remote-port %s..." % self.listeners[0])
+            print("Starting S2DS subprocess with local-port 50000 and remote-port %s..." % self.prod_listener)
+        else:
+            assert self.s2ds_proc == None, "S2DS subprocess already launched!"
+            origWD = os.getcwd()
+            os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
+            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', '50000', '--local-port', '40000', '--remote-host', '127.0.0.1'])
+            os.chdir(origWD)
+            print("Starting S2DS subprocess with local-port 40000 and remote-port 50000...")
 
     def send_resp(self, event):
         self.socket.send(pickle.dumps(self.resp))
@@ -84,7 +91,7 @@ class S2DS(Machine):
         self.resp = None
         self.s2ds_proc = None
         self.is_prod = False
-        self.listeners = []
+        self.prod_listener = None
         context = zmq.Context()
         self.socket = context.socket(zmq.REP)
         self.socket.bind("tcp://*:%s" % port)
@@ -94,7 +101,7 @@ class S2DS(Machine):
 
         transitions = [
             { 'trigger': 'REQ', 'source': 'idle', 'dest': 'reserving', 'after': 'reserve_resources'},
-            { 'trigger': 'Hello', 'source': 'idle', 'dest': 'updating', 'after': 'bind_listeners'},
+            { 'trigger': 'Hello', 'source': 'idle', 'dest': 'updating', 'after': 'bind_prod_listeners'},
             { 'trigger': 'UpdateTargets', 'source': 'idle', 'dest': 'updating', 'after': 'update_targets'},
             { 'trigger': 'REL', 'source': 'idle', 'dest': 'releasing', 'after': 'release_resources'},
             { 'trigger': 'SendResp', 'source': ['reserving', 'updating', 'releasing'], 'dest': 'idle', 'before': 'send_resp'}
@@ -130,6 +137,7 @@ if __name__ == '__main__':
             print("Current state: %s " % s2ds.state)
 
         elif message['cmd'] == 'Hello':
+            # Testing Hello
             s2ds.Hello(req=message)
             print("Current state: %s " % s2ds.state)
             s2ds.SendResp()
