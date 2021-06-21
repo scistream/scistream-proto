@@ -66,8 +66,8 @@ class S2DS(Machine):
 
         # TODO: May want to move functionality somewhere else
         # TODO: Make parameters configurable and combine repos for reliable relative path
+        # TODO: Change logic to allow for more than one S2DS subprocess
         if (self.is_prod):
-            # TODO: Change logic to allow for more than one S2DS subprocess
             assert self.s2ds_proc == None, "S2DS subprocess already launched!"
             assert self.prod_listener != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
             origWD = os.getcwd()

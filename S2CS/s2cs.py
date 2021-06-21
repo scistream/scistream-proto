@@ -31,9 +31,14 @@ class S2CS(Machine):
                       "rate": req['rate']
             }
             self.kvs[req["uid"]] = entry
-            print("Key-value store update: %s" % self.kvs)
-        elif tag == "S2DS_RESP" or tag == "S2UC_UPD":
+            print("Added key: '%s' with entry: %s" % (req["uid"], self.kvs))
+        elif tag == "S2UC_RESP" or tag == "S2UC_UPD":
             pass
+        elif tag == "S2UC_REL":
+            req = event.kwargs.get('req', None)
+            removed_item = self.kvs.pop(req["uid"], None)
+            assert removed_item != None, "S2CS could not find entry with key '%s'" % req["uid"]
+            print("Removed key: '%s' with entry: %s" % (req["uid"], removed_item))
         else:
             print("Unrecognized message")
 
@@ -105,7 +110,7 @@ if __name__ == '__main__':
         if message['cmd'] == 'REQ':
             s2cs.REQ(req=message, tag="S2UC_REQ", info="Requesting resources...")
             print("Current state: %s " % s2cs.state)
-            s2cs.RESP(tag="S2DS_RESP")
+            s2cs.RESP(tag="S2UC_RESP")
             print("Current state: %s " % s2cs.state)
 
         elif message['cmd'] == 'Hello':
@@ -116,12 +121,12 @@ if __name__ == '__main__':
             # Testing UpdateTargets
             s2cs.UpdateTargets(req=message, tag="S2UC_UPD", info="Targets: A --> B")
             print("Current state: %s " % s2cs.state)
-            s2cs.RESP(tag="S2DS_RESP")
+            s2cs.RESP(tag="S2UC_RESP")
             print("Current state: %s " % s2cs.state)
 
         elif message['cmd'] == 'REL':
             # Testing User REL
-            s2cs.REL(req=message, info="Releasing resources...")
+            s2cs.REL(req=message, tag="S2UC_REL", info="Releasing resources...")
             print("Current state: %s " % s2cs.state)
             s2cs.RESP()
             print("Current state: %s " % s2cs.state)
