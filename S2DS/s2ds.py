@@ -48,7 +48,7 @@ class S2DS(Machine):
         if (self.s2ds_proc != None):
             self.s2ds_proc.terminate()
             self.s2ds_proc = None
-            print("Terminated S2DS subprocess...")
+            print("Terminated S2DS subprocess")
 
         self.resp = "Resources released"
 
@@ -62,7 +62,7 @@ class S2DS(Machine):
 
     def update_targets(self, event):
         print("Updating targets...")
-        self.resp = "Targets updated"
+        req = event.kwargs.get('req', None)
 
         # TODO: May want to move functionality somewhere else
         # TODO: Make parameters configurable and combine repos for reliable relative path
@@ -72,26 +72,30 @@ class S2DS(Machine):
             assert self.prod_listener != None, "Prod S2CS never received or never forwarded ProdApp Hello to Prod S2DS"
             origWD = os.getcwd()
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.prod_listener, '--local-port', '50000', '--remote-host', '127.0.0.1'])
+            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', self.prod_listener, '--local-port', str(req["local_port"]), '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
-            print("Starting S2DS subprocess with local-port 50000 and remote-port %s..." % self.prod_listener)
+            print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["local_port"], self.prod_listener))
         else:
             assert self.s2ds_proc == None, "S2DS subprocess already launched!"
             origWD = os.getcwd()
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', '50000', '--local-port', '40000', '--remote-host', '127.0.0.1'])
+            self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', str(req["remote_port"]), '--local-port', str(req["local_port"]), '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
-            print("Starting S2DS subprocess with local-port 40000 and remote-port 50000...")
+            print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["remote_port"], req["local_port"]))
+            print("INFO:", event.kwargs)
+
+        print("Targets updated")
+        self.resp = "Targets updated"
 
     def send_resp(self, event):
         self.socket.send(pickle.dumps(self.resp))
 
     def __init__(self, port):
-        self.kvs = {}
-        self.resp = None
-        self.s2ds_proc = None
-        self.is_prod = False
-        self.prod_listener = None
+        self.kvs = {} # Dictionary: UUID -> Request
+        self.resp = None # Response message used in send_resp
+        self.s2ds_proc = None # Process information for spawned s2ds "buffer-and-forward" process(es)
+        self.is_prod = False # Flag for if S2DS is at producer or consumer
+        self.prod_listener = None # Remote-port of ProdApp for the producer S2DS to connect to
         context = zmq.Context()
         self.socket = context.socket(zmq.REP)
         self.socket.bind("tcp://*:%s" % port)
@@ -145,7 +149,7 @@ if __name__ == '__main__':
 
         elif message['cmd'] == 'UpdateTargets':
             # Testing UpdateTargets
-            s2ds.UpdateTargets()
+            s2ds.UpdateTargets(req=message)
             print("Current state: %s " % s2ds.state)
             s2ds.SendResp()
             print("Current state: %s " % s2ds.state)

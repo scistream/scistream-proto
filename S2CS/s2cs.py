@@ -32,7 +32,11 @@ class S2CS(Machine):
             }
             self.kvs[req["uid"]] = entry
             print("Added key: '%s' with entry: %s" % (req["uid"], self.kvs))
-        elif tag == "S2UC_RESP" or tag == "S2UC_UPD":
+        elif tag == "S2UC_RESP":
+            pass
+        elif tag == "S2UC_UPD":
+            # TODO: Update connections
+            # print("UPDATE INFO:", event.kwargs)
             pass
         elif tag == "S2UC_REL":
             req = event.kwargs.get('req', None)
@@ -119,7 +123,7 @@ if __name__ == '__main__':
 
         elif message['cmd'] == 'UpdateTargets':
             # Testing UpdateTargets
-            s2cs.UpdateTargets(req=message, tag="S2UC_UPD", info="Targets: A --> B")
+            s2cs.UpdateTargets(req=message, tag="S2UC_UPD")
             print("Current state: %s " % s2cs.state)
             s2cs.RESP(tag="S2UC_RESP")
             print("Current state: %s " % s2cs.state)
