@@ -153,6 +153,7 @@ if __name__ == '__main__':
 
     elif request['cmd'] == 'REL':
         # Release request
+        # TODO: Signal to producer/consumer that request was released?
         req = {
                 'cmd': request['cmd'],
                 'uid': request['uid']

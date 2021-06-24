@@ -64,8 +64,7 @@ class S2DS(Machine):
         print("Updating targets...")
         req = event.kwargs.get('req', None)
 
-        # TODO: May want to move functionality somewhere else
-        # TODO: Make parameters configurable and combine repos for reliable relative path
+        # TODO: Combine repos for reliable relative path
         # TODO: Change logic to allow for more than one S2DS subprocess
         if (self.is_prod):
             assert self.s2ds_proc == None, "S2DS subprocess already launched!"
@@ -83,7 +82,6 @@ class S2DS(Machine):
             os.chdir(origWD)
             print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["remote_port"], req["local_port"]))
             print("INFO:", event.kwargs)
-
         print("Targets updated")
         self.resp = "Targets updated"
 
