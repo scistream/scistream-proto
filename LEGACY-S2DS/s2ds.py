@@ -80,7 +80,7 @@ class S2DS(Machine):
             os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
             self.s2ds_proc = subprocess.Popen(['./S2DS.out', '--remote-port', str(req["remote_port"]), '--local-port', str(req["local_port"]), '--remote-host', '127.0.0.1'])
             os.chdir(origWD)
-            print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["remote_port"], req["local_port"]))
+            print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["local_port"], req["remote_port"]))
             print("INFO:", event.kwargs)
         print("Targets updated")
         self.resp = "Targets updated"

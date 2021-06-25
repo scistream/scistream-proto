@@ -59,12 +59,13 @@ class S2UC(Machine):
         # print("Updating targets: %s" % targets)
 
         # TODO: Find a better way to send ports and possible "remote-hosts" as well
-        prod_req = {"cmd": "UpdateTargets", "local_port": str(self.prod_lstn[0].split(":")[1])}
+        uid = event.kwargs.get('uid', None)
+        prod_req = {"cmd": "UpdateTargets", "uid": str(uid), "local_port": str(self.prod_lstn[0].split(":")[1])}
         self.prod_soc.send(pickle.dumps(prod_req))
         self.prod_resp = pickle.loads(self.prod_soc.recv())
         print("Producer response: %s" % self.prod_resp)
 
-        cons_req = {"cmd": "UpdateTargets", "local_port": str(self.cons_lstn[0].split(":")[1]), "remote_port": str(self.prod_lstn[0].split(":")[1])}
+        cons_req = {"cmd": "UpdateTargets", "uid": str(uid), "local_port": str(self.cons_lstn[0].split(":")[1]), "remote_port": str(self.prod_lstn[0].split(":")[1])}
         self.cons_soc.send(pickle.dumps(cons_req))
         self.cons_resp = pickle.loads(self.cons_soc.recv())
         print("Consumer response: %s" % self.cons_resp)
@@ -144,7 +145,7 @@ if __name__ == '__main__':
         s2uc.ProdLstn(listeners=temp_prod_listeners)
         print("Current state: %s " % s2uc.state)
 
-        s2uc.SendUpdateTargets()
+        s2uc.SendUpdateTargets(uid=id)
         print("Current state: %s " % s2uc.state)
         s2uc.RESP(resp="Targets updated")
         print("Current state: %s " % s2uc.state)
