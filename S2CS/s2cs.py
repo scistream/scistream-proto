@@ -46,31 +46,32 @@ class S2CS(Machine):
             req = event.kwargs.get('req', None)
             entry = self.kvs[req["uid"]]
 
-            # TODO: Combine repos for reliable relative path
             # TODO: Change logic to allow for more than one S2DS subprocess
-            # TODO: Spawn s2ds process when first reserving resources and remove most logic below
             if (entry["role"] == "PROD"):
-                assert ("s2ds_proc" not in entry) or entry["s2ds_proc"] == None, "S2DS subprocess already launched!"
+                assert ("s2ds_proc" in entry) and entry["s2ds_proc"] != None, "S2DS subprocess was not launched!"
                 assert ("prod_listeners" in entry) and entry["prod_listeners"] != None, "Prod S2CS never received or did not correctly process ProdApp Hello"
-                origWD = os.getcwd()
-                os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-                entry["s2ds_proc"] = subprocess.Popen(['./S2DS.out', '--remote-port', entry["prod_listeners"], '--local-port', str(req["local_port"]), '--remote-host', '127.0.0.1'])
-                os.chdir(origWD)
-                print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["local_port"], entry["prod_listeners"]))
+                # TODO: Allow remote-host to be configurable
+                remote_connection = "127.0.0.1" + ":" + entry["prod_listeners"] + "\n"
+                # TODO: Check that process is still running
+                entry["s2ds_proc"].stdin.write(remote_connection.encode())
+                entry["s2ds_proc"].stdin.flush()
+                print("S2DS subprocess establishing connection with %s..." % remote_connection.split("\n")[0])
             else:
-                assert ("s2ds_proc" not in entry) or entry["s2ds_proc"] == None, "S2DS subprocess already launched!"
-                origWD = os.getcwd()
-                os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-                entry["s2ds_proc"] = subprocess.Popen(['./S2DS.out', '--remote-port', str(req["remote_port"]), '--local-port', str(req["local_port"]), '--remote-host', '127.0.0.1'])
-                os.chdir(origWD)
-                print("Starting S2DS subprocess with local-port %s and remote-port %s..." % (req["local_port"], req["remote_port"]))
+                assert ("s2ds_proc" in entry) or entry["s2ds_proc"] != None, "S2DS subprocess was not launched!"
+                # TODO: Allow remote-host to be configurable
+                remote_connection = "127.0.0.1" + ":" + req["remote_port"] + "\n"
+                # TODO: Check that process is still running
+                entry["s2ds_proc"].stdin.write(remote_connection.encode())
+                entry["s2ds_proc"].stdin.flush()
+                print("S2DS subprocess establishing connection with %s..." % remote_connection.split("\n")[0])
             print("Targets updated")
             self.resp = pickle.dumps("Targets updated")
+        # Releasing resources
         elif tag == "S2UC_REL":
             req = event.kwargs.get('req', None)
             removed_item = self.kvs.pop(req["uid"], None)
             assert removed_item != None, "S2CS could not find entry with key '%s'" % req["uid"]
-            # FREE
+
             print("Releasing S2DS resources...")
             if ("s2ds_proc" in removed_item and removed_item["s2ds_proc"] != None):
                 removed_item["s2ds_proc"].terminate()
@@ -86,24 +87,26 @@ class S2CS(Machine):
         req = event.kwargs.get('req', None)
         entry = self.kvs[req["uid"]]
 
-        listeners = []
-        # TODO: Update buffer-and-forward elements to select free port
         print("Reserving resources...")
 
-        if entry["role"] == "PROD":
-            pool = "5000"
-        else:
-            pool = "4000"
+        # TODO: Allow for multiple connections / more than one S2DS subprocess
+        assert entry["num_conn"] == 1, "Only one connection is supported right now"
+        assert ("s2ds_proc" not in entry) or entry["s2ds_proc"] == None, "S2DS subprocess already launched!"
 
-        if entry["num_conn"] > 1:
-            for i in range(entry["num_conn"]):
-                listeners.append("localhost:%s%s" % (pool, i))
-        else:
-            listeners.append("localhost:%s0" % pool)
+        print("Starting S2DS subprocess...")
+        # TODO: Combine repos for reliable relative path
+        origWD = os.getcwd()
+        os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
+        entry["s2ds_proc"] = subprocess.Popen(['./S2DS.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        os.chdir(origWD)
+        # TODO: Make sure there are no errors in the returned port
+        listener_port = entry["s2ds_proc"].stdout.readline().decode("utf-8").split("\n")[0]
+        # TODO: Figure out where local ip address should come from
+        entry["listeners"] = ["127.0.0.1" + ":" + listener_port]
+        print("S2DS subprocess reserved listeners: %s" % entry["listeners"])
 
-        print("Reserved listeners:", listeners)
-        entry["listeners"] = listeners
-        self.resp = pickle.dumps(listeners)
+        print("Resources reserved")
+        self.resp = pickle.dumps(entry["listeners"])
 
     def send_prod_lstn(self, event):
         req = event.kwargs.get('req', None)
@@ -111,8 +114,8 @@ class S2CS(Machine):
         if entry["role"] == "PROD":
             self.svr_socket.send_string("Sending Prod listeners...")
             print("Binding Prod listeners...")
-            # TODO: Check if ports are open in buffer-and-forward element
-            # TODO: Send to buffer-and-forward element to bind
+            # TODO: Need to check if ports are already open in buffer-and-forward element??
+            # TODO: Send to s2uc.py and "bind" after connection map is created
             entry["prod_listeners"] = req["prod_listeners"]
             print("Binded Prod listeners: %s" % entry["prod_listeners"])
 
@@ -184,6 +187,7 @@ if __name__ == '__main__':
             # Testing User REL
             s2cs.REL(req=message, tag="S2UC_REL", info="Releasing resources...")
             print("Current state: %s " % s2cs.state)
+            # TODO: Signal to producer/consumer that request was released?
             s2cs.RESP()
             print("Current state: %s " % s2cs.state)
 
