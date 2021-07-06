@@ -33,12 +33,27 @@ class S2UC(Machine):
         print("Requesting producer resources...")
         req["role"] = "PROD"
         self.prod_soc.send(pickle.dumps(req))
-        self.prod_lstn = pickle.loads(self.prod_soc.recv())
 
         print("Requesting consumer resources...")
         req["role"] = "CONS"
         self.cons_soc.send(pickle.dumps(req))
-        self.cons_lstn = pickle.loads(self.cons_soc.recv())
+
+        # TODO: Temporary process to "spawn" ProdApp/ConsApp instances to send Hello requests
+        origWD = os.getcwd()
+        os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
+        temp_prod_app_listener = '127.0.0.1:7000' # TODO: Allow multiple listeners
+        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '5500', '--uid', str(id), '--prod-listeners', temp_prod_app_listener])
+        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '6500', '--uid', str(id)])
+        os.chdir(origWD)
+
+        prod_resp = pickle.loads(self.prod_soc.recv())
+        print("Producer response:", prod_resp)
+        self.prod_lstn = prod_resp["listeners"]
+        self.prod_app_lstn = prod_resp["prod_listeners"]
+
+        cons_resp = pickle.loads(self.cons_soc.recv())
+        print("Consumer response:", cons_resp)
+        self.cons_lstn = cons_resp["listeners"]
 
     def send_rel(self, event):
         req = event.kwargs.get('req')
@@ -60,12 +75,22 @@ class S2UC(Machine):
 
         # TODO: Find a better way to send ports and possible "remote-hosts" as well
         uid = event.kwargs.get('uid', None)
-        prod_req = {"cmd": "UpdateTargets", "uid": str(uid), "local_port": str(self.prod_lstn[0].split(":")[1])}
+        prod_req = {
+                        "cmd": "UpdateTargets",
+                        "uid": str(uid),
+                        "local_listeners": str(self.prod_lstn[0]), # TODO: Allow for multiple listeners
+                        "remote_listeners": str(self.prod_app_lstn) # TODO: Allow for multiple listeners
+        }
         self.prod_soc.send(pickle.dumps(prod_req))
         self.prod_resp = pickle.loads(self.prod_soc.recv())
         print("Producer response: %s" % self.prod_resp)
 
-        cons_req = {"cmd": "UpdateTargets", "uid": str(uid), "local_port": str(self.cons_lstn[0].split(":")[1]), "remote_port": str(self.prod_lstn[0].split(":")[1])}
+        cons_req = {
+                        "cmd": "UpdateTargets",
+                        "uid": str(uid),
+                        "local_listeners": str(self.cons_lstn[0]), # TODO: Allow for multiple listeners
+                        "remote_listeners": str(self.prod_lstn[0]) # TODO: Allow for multiple listeners
+        }
         self.cons_soc.send(pickle.dumps(cons_req))
         self.cons_resp = pickle.loads(self.cons_soc.recv())
         print("Consumer response: %s" % self.cons_resp)
@@ -75,11 +100,13 @@ class S2UC(Machine):
         # print("Key-value store update: %s" % resp)
         print("Creating connection map...")
         print("Producer listeners: %s" % self.prod_lstn)
+        print("ProdApp listeners: %s" % self.prod_app_lstn)
         print("Consumer listeners: %s" % self.cons_lstn)
 
     def __init__(self, prod, cons):
         self.resp = None
         self.prod_lstn = None
+        self.prod_app_lstn = None
         self.cons_lstn = None
         self.prod_resp = None
         self.cons_resp = None
@@ -133,16 +160,7 @@ if __name__ == '__main__':
         s2uc.SendReq(req=req)
         print("Current state: %s " % s2uc.state)
 
-        # TODO: Temporary process to "spawn" ProdApp/ConsApp instances to send Hello requests
-        origWD = os.getcwd()
-        os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
-        temp_prod_listeners = '7000'
-        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '5000', '--uid', str(id), '--prod-listeners', temp_prod_listeners])
-        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '6000', '--uid', str(id)])
-        os.chdir(origWD)
-
-        # TODO: Should come from producer S2CS after it receives 'Hello' from ProdApp
-        s2uc.ProdLstn(listeners=temp_prod_listeners)
+        s2uc.ProdLstn()
         print("Current state: %s " % s2uc.state)
 
         s2uc.SendUpdateTargets(uid=id)
