@@ -5,6 +5,7 @@
 from transitions import Machine
 from time import sleep
 from optparse import OptionParser
+from itertools import cycle, islice
 import random
 import zmq
 import pickle
@@ -46,22 +47,29 @@ class S2CS(Machine):
             req = event.kwargs.get('req', None)
             entry = self.kvs[req["uid"]]
 
-            assert ("s2ds_proc" in entry) and entry["s2ds_proc"] != None, "S2DS subprocess was not launched!"
-            assert req["local_listeners"] == entry["listeners"][0], "S2UC connection map does not match S2CS listeners"
+            assert ("s2ds_proc" in entry) and len(entry["s2ds_proc"]) == entry["num_conn"], "S2DS subprocess(es) not launched correctly!"
+            assert req["local_listeners"] == entry["listeners"], "S2UC connection map does not match S2CS listeners"
 
             if (entry["role"] == "PROD"):
                 assert ("prod_listeners" in entry) and entry["prod_listeners"] != None, "Prod S2CS never received or did not correctly process ProdApp Hello"
                 assert req["remote_listeners"] == entry["prod_listeners"], "S2UC connection map does not match Prod S2CS ProdApp listeners"
+                # TODO: Allow S2UC to handle mismatched number of listeners
+                assert len(req["remote_listeners"]) <= entry["num_conn"], "ProdApp cannot have more listeners than Prod S2CS"
+                if len(req["remote_listeners"]) < entry["num_conn"]:
+                    req["remote_listeners"] = list(islice(cycle(req["remote_listeners"]), entry["num_conn"]))
             else:
+                # TODO: Allow S2UC to handle mismatched number of listeners
+                assert(len(req["remote_listeners"]) == entry["num_conn"]), "Prod/Cons S2CS must have same number of listeners"
                 entry["prods2cs_listeners"] = req["remote_listeners"] # Include remote listeners for transparency to user
 
-            # TODO: Change logic to allow for more than one S2DS subprocess
-            remote_connection = req["remote_listeners"] + "\n"
+            for i in range(len(req["remote_listeners"])):
+                curr_proc = entry["s2ds_proc"][i]
+                curr_remote_conn = req["remote_listeners"][i] + "\n"
+                # TODO: Check that process is still running
+                curr_proc.stdin.write(curr_remote_conn.encode())
+                curr_proc.stdin.flush()
+                print("S2DS subprocess establishing connection with %s..." % curr_remote_conn.split("\n")[0])
 
-            # TODO: Check that process is still running
-            entry["s2ds_proc"].stdin.write(remote_connection.encode())
-            entry["s2ds_proc"].stdin.flush()
-            print("S2DS subprocess establishing connection with %s..." % remote_connection.split("\n")[0])
             print("Targets updated")
             self.resp = pickle.dumps("Targets updated")
 
@@ -72,10 +80,11 @@ class S2CS(Machine):
             assert removed_item != None, "S2CS could not find entry with key '%s'" % req["uid"]
 
             print("Releasing S2DS resources...")
-            if ("s2ds_proc" in removed_item and removed_item["s2ds_proc"] != None):
-                removed_item["s2ds_proc"].terminate()
-                removed_item["s2ds_proc"] = removed_item["s2ds_proc"].pid # Print out PID rather than Popen object
-                print("Terminated S2DS subprocess")
+            if ("s2ds_proc" in removed_item and removed_item["s2ds_proc"] != []):
+                for i, rem_proc in enumerate(removed_item["s2ds_proc"]):
+                    rem_proc.terminate() # TODO: Make sure s2ds buffer handles this signal gracefully
+                    removed_item["s2ds_proc"][i] = rem_proc.pid # Print out PID rather than Popen object
+                print("Terminated %d S2DS subprocess(es)" % len(removed_item["s2ds_proc"]))
 
             self.resp = pickle.dumps("Resources released")
             print("Removed key: '%s' with entry: %s" % (req["uid"], removed_item))
@@ -90,22 +99,30 @@ class S2CS(Machine):
         entry = self.kvs[req["uid"]]
         print("Reserving resources...")
 
-        # TODO: Allow for multiple connections / more than one S2DS subprocess
-        assert entry["num_conn"] == 1, "Only one connection is supported right now"
-        assert ("s2ds_proc" not in entry) or entry["s2ds_proc"] == None, "S2DS subprocess already launched!"
+        assert entry["num_conn"] > 0, "Must have at least one connection"
+        assert ("s2ds_proc" not in entry) or entry["s2ds_proc"] == [], "S2DS subprocess already launched!"
+        assert ("listeners" not in entry) or entry["listeners"] == [], "S2DS subprocess already launched!"
 
-        print("Starting S2DS subprocess...")
+        print("Starting S2DS subprocess(es)...")
         # TODO: Combine repos for reliable relative path
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
-        entry["s2ds_proc"] = subprocess.Popen(['./S2DS.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-        os.chdir(origWD)
-        # TODO: Make sure there are no errors in the returned port
-        listener_port = entry["s2ds_proc"].stdout.readline().decode("utf-8").split("\n")[0]
-        # TODO: Figure out where local ip address should come from
-        entry["listeners"] = ["127.0.0.1" + ":" + listener_port]
-        print("S2DS subprocess reserved listeners: %s" % entry["listeners"])
+        entry["s2ds_proc"] = []
+        entry["listeners"] = []
 
+        for _ in range(entry["num_conn"]):
+            new_proc = subprocess.Popen(['./S2DS.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+            # TODO: Make sure there are no errors in the returned port
+            new_listener_port = new_proc.stdout.readline().decode("utf-8").split("\n")[0]
+            # TODO: Figure out where local ip address should come from
+            new_listener = "127.0.0.1" + ":" + new_listener_port
+
+            entry["s2ds_proc"].append(new_proc)
+            entry["listeners"].append(new_listener)
+
+        os.chdir(origWD)
+
+        print("S2DS subprocess(es) reserved listeners: %s" % entry["listeners"])
         print("Resources reserved")
         self.resp = pickle.dumps(entry["listeners"])
 
@@ -125,7 +142,7 @@ class S2CS(Machine):
         else:
             self.app_svr_socket.send_string("I'm Cons, nothing to send.")
             entry = {
-                      "listeners": entry["listeners"],
+                      "listeners": entry["listeners"]
             }
         self.resp = pickle.dumps(entry)
 

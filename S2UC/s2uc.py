@@ -4,6 +4,7 @@
 
 from transitions import Machine
 from optparse import OptionParser
+from itertools import cycle, islice
 import time
 import sys
 import random
@@ -41,8 +42,12 @@ class S2UC(Machine):
         # TODO: Temporary process to "spawn" ProdApp/ConsApp instances to send Hello requests
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
-        temp_prod_app_listener = '127.0.0.1:7000' # TODO: Allow multiple listeners
-        subprocess.run(['python', 'send_hello.py', '--s2cs-port', '5500', '--uid', str(id), '--prod-listeners', temp_prod_app_listener])
+
+        prod_app_listeners = ['127.0.0.1:7000']
+        temp_prod_cli = ['python', 'send_hello.py', '--s2cs-port', '5500', '--uid', str(id)]
+        for l in prod_app_listeners:
+            temp_prod_cli.extend(['--prod-listener', l])
+        subprocess.run(temp_prod_cli)
         subprocess.run(['python', 'send_hello.py', '--s2cs-port', '6500', '--uid', str(id)])
         os.chdir(origWD)
 
@@ -73,31 +78,33 @@ class S2UC(Machine):
         # targets = event.kwargs.get('targets', None)
         # print("Updating targets: %s" % targets)
 
-        # TODO: Find a better way to send ports and possible "remote-hosts" as well
         uid = event.kwargs.get('uid', None)
         prod_req = {
                         "cmd": "UpdateTargets",
                         "uid": str(uid),
-                        "local_listeners": str(self.prod_lstn[0]), # TODO: Allow for multiple listeners
-                        "remote_listeners": str(self.prod_app_lstn) # TODO: Allow for multiple listeners
+                        "local_listeners": self.prod_lstn,
+                        "remote_listeners": self.prod_app_lstn
         }
         self.prod_soc.send(pickle.dumps(prod_req))
-        self.prod_resp = pickle.loads(self.prod_soc.recv())
-        print("Producer response: %s" % self.prod_resp)
 
         cons_req = {
                         "cmd": "UpdateTargets",
                         "uid": str(uid),
-                        "local_listeners": str(self.cons_lstn[0]), # TODO: Allow for multiple listeners
-                        "remote_listeners": str(self.prod_lstn[0]) # TODO: Allow for multiple listeners
+                        "local_listeners": self.cons_lstn,
+                        "remote_listeners": self.prod_lstn
         }
         self.cons_soc.send(pickle.dumps(cons_req))
+
+        self.prod_resp = pickle.loads(self.prod_soc.recv())
+        print("Producer response: %s" % self.prod_resp)
         self.cons_resp = pickle.loads(self.cons_soc.recv())
         print("Consumer response: %s" % self.cons_resp)
 
     def create_conn_map(self, event):
         # resp = event.kwargs.get('resp', None)
         # print("Key-value store update: %s" % resp)
+
+        # TODO: If list sizes do not match, edit lists to evenly distribute resources (see s2cs.py itertools)
         print("Creating connection map...")
         print("Producer listeners: %s" % self.prod_lstn)
         print("ProdApp listeners: %s" % self.prod_app_lstn)
@@ -157,6 +164,7 @@ if __name__ == '__main__':
                 'num_conn': request['num_conn'],
                 'rate': request['rate']
         }
+        print("Sending request:", req)
         s2uc.SendReq(req=req)
         print("Current state: %s " % s2uc.state)
 
