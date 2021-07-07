@@ -49,14 +49,14 @@ class S2CS(Machine):
             assert ("s2ds_proc" in entry) and entry["s2ds_proc"] != None, "S2DS subprocess was not launched!"
             assert req["local_listeners"] == entry["listeners"][0], "S2UC connection map does not match S2CS listeners"
 
-            # TODO: Change logic to allow for more than one S2DS subprocess
             if (entry["role"] == "PROD"):
                 assert ("prod_listeners" in entry) and entry["prod_listeners"] != None, "Prod S2CS never received or did not correctly process ProdApp Hello"
                 assert req["remote_listeners"] == entry["prod_listeners"], "S2UC connection map does not match Prod S2CS ProdApp listeners"
-                remote_connection = entry["prod_listeners"] + "\n"
             else:
-                remote_connection = req["remote_listeners"] + "\n"
                 entry["prods2cs_listeners"] = req["remote_listeners"] # Include remote listeners for transparency to user
+
+            # TODO: Change logic to allow for more than one S2DS subprocess
+            remote_connection = req["remote_listeners"] + "\n"
 
             # TODO: Check that process is still running
             entry["s2ds_proc"].stdin.write(remote_connection.encode())
