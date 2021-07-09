@@ -28,6 +28,8 @@ def parseOptions():
     return options, args
 
 class S2UC(Machine):
+
+    # Send request to reserve resources
     def send_req(self, event):
         req = event.kwargs.get('req')
 
@@ -43,7 +45,7 @@ class S2UC(Machine):
         origWD = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../utils'))
 
-        prod_app_listeners = ['127.0.0.1:7000']
+        prod_app_listeners = ['127.0.0.1:7000', '127.0.0.1:17000']
         temp_prod_cli = ['python', 'send_hello.py', '--s2cs-port', '5500', '--uid', str(id)]
         for l in prod_app_listeners:
             temp_prod_cli.extend(['--prod-listener', l])
@@ -51,29 +53,35 @@ class S2UC(Machine):
         subprocess.run(['python', 'send_hello.py', '--s2cs-port', '6500', '--uid', str(id)])
         os.chdir(origWD)
 
-        prod_resp = pickle.loads(self.prod_soc.recv())
-        print("Producer response:", prod_resp)
-        self.prod_lstn = prod_resp["listeners"]
-        self.prod_app_lstn = prod_resp["prod_listeners"]
+        self.prod_resp = pickle.loads(self.prod_soc.recv())
+        self.cons_resp = pickle.loads(self.cons_soc.recv())
+        print("Producer response:", self.prod_resp)
+        print("Consumer response:", self.cons_resp)
+        assert str(self.prod_resp)[:6] != "ERROR:", self.prod_resp
+        assert str(self.cons_resp)[:6] != "ERROR:", self.cons_resp
 
-        cons_resp = pickle.loads(self.cons_soc.recv())
-        print("Consumer response:", cons_resp)
-        self.cons_lstn = cons_resp["listeners"]
+        self.prod_lstn = self.prod_resp["listeners"]
+        self.prod_app_lstn = self.prod_resp["prod_listeners"]
+        self.cons_lstn = self.cons_resp["listeners"]
 
+    # Send request to release resources
     def send_rel(self, event):
         req = event.kwargs.get('req')
 
         print("Releasing producer resources...")
         self.prod_soc.send(pickle.dumps(req))
-        self.prod_resp = pickle.loads(self.prod_soc.recv())
 
         print("Releasing consumer resources...")
         self.cons_soc.send(pickle.dumps(req))
-        self.cons_resp = pickle.loads(self.cons_soc.recv())
 
+        self.prod_resp = pickle.loads(self.prod_soc.recv())
+        self.cons_resp = pickle.loads(self.cons_soc.recv())
         print("Producer response: %s" % self.prod_resp)
         print("Consumer response: %s" % self.cons_resp)
+        assert str(self.prod_resp)[:6] != "ERROR:", self.prod_resp
+        assert str(self.cons_resp)[:6] != "ERROR:", self.cons_resp
 
+    # Send updated target information from connection map
     def send_update_targets(self, event):
         # targets = event.kwargs.get('targets', None)
         # print("Updating targets: %s" % targets)
@@ -96,10 +104,13 @@ class S2UC(Machine):
         self.cons_soc.send(pickle.dumps(cons_req))
 
         self.prod_resp = pickle.loads(self.prod_soc.recv())
-        print("Producer response: %s" % self.prod_resp)
         self.cons_resp = pickle.loads(self.cons_soc.recv())
+        print("Producer response: %s" % self.prod_resp)
         print("Consumer response: %s" % self.cons_resp)
+        assert str(self.prod_resp)[:6] != "ERROR:", self.prod_resp
+        assert str(self.cons_resp)[:6] != "ERROR:", self.cons_resp
 
+    # Create connection map to be used by S2CS
     def create_conn_map(self, event):
         # resp = event.kwargs.get('resp', None)
         # print("Key-value store update: %s" % resp)
@@ -110,6 +121,12 @@ class S2UC(Machine):
         print("ProdApp listeners: %s" % self.prod_app_lstn)
         print("Consumer listeners: %s" % self.cons_lstn)
 
+    # Error handler
+    def handle_error(self, event):
+        print(event.error)
+        raise AssertionError(event.error)
+
+    # Initialize S2UC object
     def __init__(self, prod, cons):
         self.resp = None
         self.prod_lstn = None
@@ -137,12 +154,12 @@ class S2UC(Machine):
             { 'trigger': 'RESP', 'source': 'reserving', 'dest': None},
             { 'trigger': 'ProdLstn', 'source': 'reserving', 'dest': 'provisioning', 'before': 'create_conn_map'},
             { 'trigger': 'SendUpdateTargets', 'source': 'provisioning', 'dest': 'updating', 'after': 'send_update_targets'},
-            { 'trigger': 'ERROR', 'source': ['reserving', 'provisioning', 'updating'], 'dest': 'releasing'},
             { 'trigger': 'RESP', 'source': ['updating', 'releasing'], 'dest': 'idle'},
+            { 'trigger': 'ERROR', 'source': '*', 'dest': 'releasing'},
             { 'trigger': 'ErrorRel', 'source': 'releasing', 'dest': 'idle'},
         ]
 
-        Machine.__init__(self, states=states, transitions=transitions, send_event=True, initial='idle')
+        Machine.__init__(self, states=states, transitions=transitions, send_event=True, initial='idle', on_exception='handle_error')
 
 if __name__ == '__main__':
     start = time.time()
@@ -155,43 +172,49 @@ if __name__ == '__main__':
     else:
         sys.exit("Please provide a JSON file with your request.")
 
-    if request['cmd'] == 'REQ':
-        # User request
-        id = uuid.uuid1()
-        req = {
-                'cmd': request['cmd'],
-                'uid': str(id),
-                'num_conn': request['num_conn'],
-                'rate': request['rate']
-        }
-        print("Sending request:", req)
-        s2uc.SendReq(req=req)
-        print("Current state: %s " % s2uc.state)
+    try:
+        if request['cmd'] == 'REQ':
+            # User request
+            id = uuid.uuid1()
+            req = {
+                    'cmd': request['cmd'],
+                    'uid': str(id),
+                    'num_conn': request['num_conn'],
+                    'rate': request['rate']
+            }
+            print("Sending request:", req)
+            s2uc.SendReq(req=req)
+            print("Current state: %s " % s2uc.state)
 
-        s2uc.ProdLstn()
-        print("Current state: %s " % s2uc.state)
+            s2uc.ProdLstn()
+            print("Current state: %s " % s2uc.state)
 
-        s2uc.SendUpdateTargets(uid=id)
-        print("Current state: %s " % s2uc.state)
-        s2uc.RESP(resp="Targets updated")
-        print("Current state: %s " % s2uc.state)
-        t = time.time() - start
-        print("*** Process time: %s sec." % t)
+            s2uc.SendUpdateTargets(uid=id)
+            print("Current state: %s " % s2uc.state)
+            s2uc.RESP(resp="Targets updated")
+            print("Current state: %s " % s2uc.state)
+            t = time.time() - start
+            print("*** Process time: %s sec." % t)
 
-    elif request['cmd'] == 'REL':
-        # Release request
-        req = {
-                'cmd': request['cmd'],
-                'uid': request['uid']
-        }
-        s2uc.SendRel(req=req)
-        print("Current state: %s " % s2uc.state)
-        s2uc.RESP(resp="Resources released")
-        print("Current state: %s " % s2uc.state)
-        t = time.time() - start
-        print("*** Process time: %s sec." % t)
+        elif request['cmd'] == 'REL':
+            # Release request
+            req = {
+                    'cmd': request['cmd'],
+                    'uid': request['uid']
+            }
+            s2uc.SendRel(req=req)
+            print("Current state: %s " % s2uc.state)
+            s2uc.RESP(resp="Resources released")
+            print("Current state: %s " % s2uc.state)
+            t = time.time() - start
+            print("*** Process time: %s sec." % t)
 
-    else:
-        t = time.time() - start
-        print("*** Process time: %s sec." % t)
-        sys.exit("Unrecognized command, please use REQ or REL")
+        else:
+            t = time.time() - start
+            print("*** Process time: %s sec." % t)
+            sys.exit("Unrecognized command, please use REQ or REL")
+    except AssertionError as err:
+        print("ERROR: S2UC encountered AssertionError")
+    except:
+        print("ERROR: Unexpected error", sys.exc_info()[0])
+        # TODO: Release all resources
