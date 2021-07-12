@@ -31,7 +31,7 @@ class S2UC(Machine):
 
     # Send request to reserve resources
     def send_req(self, event):
-        req = event.kwargs.get('req')
+        req = event.kwargs.get('req', None)
 
         print("Requesting producer resources...")
         req["role"] = "PROD"
@@ -85,8 +85,9 @@ class S2UC(Machine):
     def send_update_targets(self, event):
         # targets = event.kwargs.get('targets', None)
         # print("Updating targets: %s" % targets)
+        req = event.kwargs.get('req', None)
+        uid = req["uid"]
 
-        uid = event.kwargs.get('uid', None)
         prod_req = {
                         "cmd": "UpdateTargets",
                         "uid": str(uid),
@@ -123,8 +124,22 @@ class S2UC(Machine):
 
     # Error handler
     def handle_error(self, event):
-        print(event.error)
-        raise AssertionError(event.error)
+        err_msg = event.error
+        print(err_msg)
+
+        if (event.event.name == "SendRel" or event.event.name == "ErrorRel"):
+            self.Reset()
+            raise AssertionError("ERROR: S2UC encountered error while attempting to release S2CS resources")
+
+        self.ERROR()
+        req = event.kwargs.get('req', None)
+        error_req = {
+                'cmd': "ERROR",
+                'uid': req["uid"]
+        }
+        print("Sending error release request for uid '%s'..." % req["uid"])
+        self.ErrorRel(req=error_req)
+        raise AssertionError(err_msg)
 
     # Initialize S2UC object
     def __init__(self, prod, cons):
@@ -151,12 +166,13 @@ class S2UC(Machine):
         transitions = [
             { 'trigger': 'SendReq', 'source': 'idle', 'dest': 'reserving', 'after': 'send_req'},
             { 'trigger': 'SendRel', 'source': 'idle', 'dest': 'releasing', 'after': 'send_rel'},
-            { 'trigger': 'RESP', 'source': 'reserving', 'dest': None},
+            { 'trigger': 'RESP', 'source': 'reserving', 'dest': 'idle'},
             { 'trigger': 'ProdLstn', 'source': 'reserving', 'dest': 'provisioning', 'before': 'create_conn_map'},
             { 'trigger': 'SendUpdateTargets', 'source': 'provisioning', 'dest': 'updating', 'after': 'send_update_targets'},
             { 'trigger': 'RESP', 'source': ['updating', 'releasing'], 'dest': 'idle'},
             { 'trigger': 'ERROR', 'source': '*', 'dest': 'releasing'},
-            { 'trigger': 'ErrorRel', 'source': 'releasing', 'dest': 'idle'},
+            { 'trigger': 'ErrorRel', 'source': 'releasing', 'dest': 'idle', 'after': 'send_rel'},
+            { 'trigger': 'Reset', 'source': '*', 'dest': 'idle'}
         ]
 
         Machine.__init__(self, states=states, transitions=transitions, send_event=True, initial='idle', on_exception='handle_error')
@@ -186,12 +202,12 @@ if __name__ == '__main__':
             s2uc.SendReq(req=req)
             print("Current state: %s " % s2uc.state)
 
-            s2uc.ProdLstn()
+            s2uc.ProdLstn(req=req)
             print("Current state: %s " % s2uc.state)
 
-            s2uc.SendUpdateTargets(uid=id)
+            s2uc.SendUpdateTargets(req=req)
             print("Current state: %s " % s2uc.state)
-            s2uc.RESP(resp="Targets updated")
+            s2uc.RESP()
             print("Current state: %s " % s2uc.state)
             t = time.time() - start
             print("*** Process time: %s sec." % t)
@@ -204,7 +220,7 @@ if __name__ == '__main__':
             }
             s2uc.SendRel(req=req)
             print("Current state: %s " % s2uc.state)
-            s2uc.RESP(resp="Resources released")
+            s2uc.RESP()
             print("Current state: %s " % s2uc.state)
             t = time.time() - start
             print("*** Process time: %s sec." % t)
@@ -213,8 +229,9 @@ if __name__ == '__main__':
             t = time.time() - start
             print("*** Process time: %s sec." % t)
             sys.exit("Unrecognized command, please use REQ or REL")
+
+    # Error encountered in S2UC
     except AssertionError as err:
-        print("ERROR: S2UC encountered AssertionError")
+        print(err)
     except:
-        print("ERROR: Unexpected error", sys.exc_info()[0])
-        # TODO: Release all resources
+        print("ERROR: Unexpected error: %s" % sys.exc_info()[0])

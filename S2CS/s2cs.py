@@ -21,6 +21,7 @@ def parseOptions():
     parser = OptionParser()
     parser.add_option('--s2-port', dest='s2_port', default="5000", help='S2UC->S2CS server port')
     parser.add_option('--app-port', dest='app_port', default="5500", help='ProdApp/ConsApp->S2CS server port')
+    parser.add_option('--listener-ip', dest='listener_ip', default="127.0.0.1", help='Local IP address of listeners')
     (options, args) = parser.parse_args()
 
     return options, args
@@ -68,7 +69,7 @@ class S2CS(Machine):
             for i in range(len(req["remote_listeners"])):
                 curr_proc = entry["s2ds_proc"][i]
                 curr_remote_conn = req["remote_listeners"][i] + "\n"
-                # TODO: Check that process is still running
+                assert (curr_proc.poll() is None), "S2DS subprocess with PID '%d' unexpectedly quit" % curr_proc.pid
                 curr_proc.stdin.write(curr_remote_conn.encode())
                 curr_proc.stdin.flush()
                 print("S2DS subprocess establishing connection with %s..." % curr_remote_conn.split("\n")[0])
@@ -108,11 +109,9 @@ class S2CS(Machine):
 
         for _ in range(entry["num_conn"]):
             new_proc = subprocess.Popen(['./S2DS.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            # TODO: Make sure there are no errors in the returned port
             new_listener_port = new_proc.stdout.readline().decode("utf-8").split("\n")[0]
-            # TODO: Figure out where local ip address should come from
-            new_listener = "127.0.0.1" + ":" + new_listener_port
-
+            assert (int(new_listener_port) > 0 and int(new_listener_port) <= 65535), "S2DS subprocess returned invalid listener port '%s'" % new_listener_port
+            new_listener = self.listener_ip + ":" + new_listener_port
             entry["s2ds_proc"].append(new_proc)
             entry["listeners"].append(new_listener)
 
@@ -184,9 +183,10 @@ class S2CS(Machine):
         raise AssertionError(err_msg)
 
     # Initialize S2CS object
-    def __init__(self, s2_port, app_port):
+    def __init__(self, s2_port, app_port, listener_ip):
         self.kvs = {}
         self.resp = None
+        self.listener_ip = listener_ip
 
         # Create S2UC->S2CS server side
         s2_svr_context = zmq.Context()
@@ -220,7 +220,7 @@ class S2CS(Machine):
 
 if __name__ == '__main__':
     opts, args = parseOptions()
-    s2cs = S2CS(opts.s2_port, opts.app_port)
+    s2cs = S2CS(opts.s2_port, opts.app_port, opts.listener_ip)
 
     while True:
         try:
