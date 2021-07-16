@@ -14,6 +14,7 @@ import sys
 import os
 import subprocess
 import json
+import threading
 
 # Parse command line options and dump results
 def parseOptions():
@@ -200,12 +201,18 @@ class S2CS(Machine):
         self.app_svr_socket.bind("tcp://*:%s" % app_port)
         print("ProdApp/ConsApp->S2CS server running on port TCP/%s" % app_port)
 
-        states = ['idle', 'reserving', 'listening', 'updating', 'releasing']
+        # Initialize poll set
+        self.poller = zmq.Poller()
+        self.poller.register(self.s2_svr_socket, zmq.POLLIN)
+        self.poller.register(self.app_svr_socket, zmq.POLLIN)
+
+        states = ['idle', 'reserving', 'receiving', 'updating', 'releasing']
 
         transitions = [
             { 'trigger': 'REQ', 'source': 'idle', 'dest': 'reserving', 'before': 'update_kvs'},
-            { 'trigger': 'Reserve', 'source': 'reserving', 'dest': 'listening', 'before': 'reserve_resources'},
-            { 'trigger': 'Hello', 'source': 'listening', 'dest': 'idle', 'before': 'send_prod_lstn', 'after': 'send_resp'},
+            { 'trigger': 'Reserve', 'source': 'reserving', 'dest': 'idle', 'before': 'reserve_resources'},
+            { 'trigger': 'Hello', 'source': 'idle', 'dest': 'receiving', 'before': 'send_prod_lstn'},
+            { 'trigger': 'RESP', 'source': 'receiving', 'dest': 'idle', 'after': 'send_resp'},
             { 'trigger': 'REL', 'source': 'idle', 'dest': 'releasing', 'before': 'update_kvs'},
             { 'trigger': 'RESP', 'source': 'releasing', 'dest': 'idle', 'after': 'send_resp'},
             { 'trigger': 'UpdateTargets', 'source': 'idle', 'dest': 'updating', 'before': 'update_kvs'},
@@ -225,18 +232,60 @@ if __name__ == '__main__':
     while True:
         try:
             #  Wait for next request from S2UC or Prod/Cons App
-            s2_request = s2cs.s2_svr_socket.recv()
-            s2_message = pickle.loads(s2_request)
-            print("Received S2UC request:", s2_message['cmd'])
+            sockets = dict(s2cs.poller.poll())
+            print(sockets)
 
-            # Requesting resources
-            if s2_message['cmd'] == 'REQ':
-                s2cs.REQ(req=s2_message, tag="S2UC_REQ")
-                print("Current state: %s " % s2cs.state)
-                s2cs.Reserve(req=s2_message)
-                print("Current state: %s " % s2cs.state)
+            # Received request from S2UC
+            if s2cs.s2_svr_socket in sockets:
+                s2_request = s2cs.s2_svr_socket.recv()
+                s2_message = pickle.loads(s2_request)
+                print("Received S2UC request:", s2_message['cmd'])
 
-                # Listen on ProdApp/ConsApp port for Hello
+                # Requesting resources
+                if s2_message['cmd'] == 'REQ':
+                    s2cs.REQ(req=s2_message, tag="S2UC_REQ")
+                    print("Current state: %s " % s2cs.state)
+                    s2cs.Reserve(req=s2_message)
+                    print("Current state: %s " % s2cs.state)
+
+                    # # Listen on ProdApp/ConsApp port for Hello
+                    # app_request = s2cs.app_svr_socket.recv()
+                    # app_message = pickle.loads(app_request)
+                    # print("Received App request:", app_message['cmd'])
+                    #
+                    # if app_message['cmd'] == 'Hello':
+                    #     s2cs.Hello(req=app_message)
+                    #     print("Current state: %s " % s2cs.state)
+                    # else:
+                    #     s2cs.app_svr_socket.send_string("RESP: %s message not supported" % app_message)
+
+                # Updating targets
+                elif s2_message['cmd'] == 'UpdateTargets':
+                    s2cs.UpdateTargets(req=s2_message, tag="S2UC_UPD")
+                    print("Current state: %s " % s2cs.state)
+                    s2cs.RESP()
+                    print("Current state: %s " % s2cs.state)
+
+                # Releasing resources
+                elif s2_message['cmd'] == 'REL':
+                    s2cs.REL(req=s2_message, tag="S2UC_REL", resp="Resources released")
+                    print("Current state: %s " % s2cs.state)
+                    # TODO: Signal to producer/consumer that request was released?
+                    s2cs.RESP()
+                    print("Current state: %s " % s2cs.state)
+
+                # Error in request sent from S2UC
+                elif s2_message['cmd'] == 'ERROR':
+                    s2cs.ERROR()
+                    print("Current state: %s " % s2cs.state)
+                    s2cs.ErrorRel(req=s2_message, tag="S2UC_ERR", resp="Resources released")
+
+                # Unknown command
+                else:
+                    s2cs.s2_svr_socket.send_string("ERROR: %s message not supported" % s2_message)
+
+            # Received request from Prod/Cons App
+            if s2cs.app_svr_socket in sockets:
                 app_request = s2cs.app_svr_socket.recv()
                 app_message = pickle.loads(app_request)
                 print("Received App request:", app_message['cmd'])
@@ -244,33 +293,10 @@ if __name__ == '__main__':
                 if app_message['cmd'] == 'Hello':
                     s2cs.Hello(req=app_message)
                     print("Current state: %s " % s2cs.state)
+                    s2cs.RESP()
+                    print("Current state: %s " % s2cs.state)
                 else:
                     s2cs.app_svr_socket.send_string("RESP: %s message not supported" % app_message)
-
-            # Updating targets
-            elif s2_message['cmd'] == 'UpdateTargets':
-                s2cs.UpdateTargets(req=s2_message, tag="S2UC_UPD")
-                print("Current state: %s " % s2cs.state)
-                s2cs.RESP()
-                print("Current state: %s " % s2cs.state)
-
-            # Releasing resources
-            elif s2_message['cmd'] == 'REL':
-                s2cs.REL(req=s2_message, tag="S2UC_REL", resp="Resources released")
-                print("Current state: %s " % s2cs.state)
-                # TODO: Signal to producer/consumer that request was released?
-                s2cs.RESP()
-                print("Current state: %s " % s2cs.state)
-
-            # Error in request sent from S2UC
-            elif s2_message['cmd'] == 'ERROR':
-                s2cs.ERROR()
-                print("Current state: %s " % s2cs.state)
-                s2cs.ErrorRel(req=s2_message, tag="S2UC_ERR", resp="Resources released")
-
-            # Unknown command
-            else:
-                s2cs.s2_svr_socket.send_string("ERROR: %s message not supported" % s2_message)
 
         # Error encountered in S2CS
         except AssertionError:
