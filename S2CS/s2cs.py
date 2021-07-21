@@ -14,7 +14,9 @@ import sys
 import os
 import subprocess
 import json
-import threading
+import logging
+
+s2cs_logger = logging.getLogger("s2cs.py")
 
 # Parse command line options and dump results
 def parseOptions():
@@ -23,6 +25,7 @@ def parseOptions():
     parser.add_option('--s2-port', dest='s2_port', default="5000", help='S2UC->S2CS server port')
     parser.add_option('--app-port', dest='app_port', default="5500", help='ProdApp/ConsApp->S2CS server port')
     parser.add_option('--listener-ip', dest='listener_ip', default="127.0.0.1", help='Local IP address of listeners')
+    parser.add_option("--v", action="store_true", dest="verbose", default=False, help="Verbose output")
     (options, args) = parser.parse_args()
 
     return options, args
@@ -37,19 +40,24 @@ class S2CS(Machine):
         if tag == "S2UC_REQ":
             print("Requesting resources...")
             req = event.kwargs.get('req', None)
+            uid = req.get('uid', None)
+            assert uid != None and uid != "", "Invalid uid '%s'" % uid
             entry = {
                       "role": req['role'],
                       "num_conn": req['num_conn'],
                       "rate": req['rate']
             }
-            self.kvs[req["uid"]] = entry
-            print("Added key: '%s' with entry: %s" % (req["uid"], self.kvs.get(req["uid"])))
+            self.kvs[uid] = entry
+            s2cs_logger.info("Added key: '%s' with entry: %s" % (req["uid"], self.kvs.get(req["uid"])))
 
         ### Updating targets
         elif tag == "S2UC_UPD":
             print("Updating targets...")
             req = event.kwargs.get('req', None)
-            entry = self.kvs[req["uid"]]
+            uid = req.get('uid', None)
+            assert uid != None and uid != "", "Invalid uid '%s'" % uid
+            entry = self.kvs.get(uid, None)
+            assert entry != None, "S2CS could not find entry with key '%s'" % uid
 
             assert ("s2ds_proc" in entry) and len(entry["s2ds_proc"]) == entry["num_conn"], "S2DS subprocess(es) not launched correctly!"
             assert req["local_listeners"] == entry["listeners"], "S2UC connection map does not match S2CS listeners"
@@ -66,7 +74,7 @@ class S2CS(Machine):
                 assert(len(req["remote_listeners"]) == entry["num_conn"]), "Prod/Cons S2CS must have same number of listeners"
                 entry["prods2cs_listeners"] = req["remote_listeners"] # Include remote listeners for transparency to user
 
-            # Send remote port information to S2DS subprocesses
+            # Send remote port information to S2DS subprocesses in format "remote_ip:remote_port\n"
             for i in range(len(req["remote_listeners"])):
                 curr_proc = entry["s2ds_proc"][i]
                 curr_remote_conn = req["remote_listeners"][i] + "\n"
@@ -82,9 +90,12 @@ class S2CS(Machine):
         elif tag == "S2UC_REL" or tag == "S2UC_ERR":
             print("Releasing S2DS resources...")
             req = event.kwargs.get('req', None)
+            uid = req.get('uid', None)
+            assert uid != None and uid != "", "Invalid uid '%s'" % uid
             resp = event.kwargs.get('resp', "Resources released")
-            self.release_request(req["uid"])
+            self.release_request(uid)
             self.resp = pickle.dumps(resp)
+            print("Released S2DS resources")
 
         ### Unknown message
         else:
@@ -94,7 +105,10 @@ class S2CS(Machine):
     # Reserve resources for incoming requests
     def reserve_resources(self, event):
         req = event.kwargs.get('req', None)
-        entry = self.kvs[req["uid"]]
+        uid = req.get('uid', None)
+        assert uid != None and uid != "", "Invalid uid '%s'" % uid
+        entry = self.kvs.get(uid, None)
+        assert entry != None, "S2CS could not find entry with key '%s'" % uid
         print("Reserving resources...")
 
         assert entry["num_conn"] > 0, "Must have at least one connection"
@@ -110,7 +124,7 @@ class S2CS(Machine):
 
         for _ in range(entry["num_conn"]):
             new_proc = subprocess.Popen(['./S2DS.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            new_listener_port = new_proc.stdout.readline().decode("utf-8").split("\n")[0]
+            new_listener_port = new_proc.stdout.readline().decode("utf-8").split("\n")[0] # Read listener port from S2DS subprocess
             assert (int(new_listener_port) > 0 and int(new_listener_port) <= 65535), "S2DS subprocess returned invalid listener port '%s'" % new_listener_port
             new_listener = self.listener_ip + ":" + new_listener_port
             entry["s2ds_proc"].append(new_proc)
@@ -118,7 +132,7 @@ class S2CS(Machine):
 
         os.chdir(origWD)
 
-        print("S2DS subprocess(es) reserved listeners: %s" % entry["listeners"])
+        s2cs_logger.info("S2DS subprocess(es) reserved listeners: %s" % entry["listeners"])
         print("Resources reserved")
         self.resp = pickle.dumps(entry["listeners"])
 
@@ -139,19 +153,22 @@ class S2CS(Machine):
             for i, rem_proc in enumerate(removed_item["s2ds_proc"]):
                 rem_proc.terminate() # TODO: Make sure s2ds buffer handles this signal gracefully
                 removed_item["s2ds_proc"][i] = rem_proc.pid # Print out PID rather than Popen object
-            print("Terminated %d S2DS subprocess(es)" % len(removed_item["s2ds_proc"]))
+            s2cs_logger.info("Terminated %d S2DS subprocess(es)" % len(removed_item["s2ds_proc"]))
 
-        print("Removed key: '%s' with entry: %s" % (uid, removed_item))
+        s2cs_logger.info("Removed key: '%s' with entry: %s" % (uid, removed_item))
 
     # Create entry of connection information to send to S2UC
     def send_prod_lstn(self, event):
         req = event.kwargs.get('req', None)
-        entry = self.kvs[req["uid"]]
+        uid = req.get('uid', None)
+        assert uid != None and uid != "", "Invalid uid '%s'" % uid
+        entry = self.kvs.get(uid, None)
+        assert entry != None, "S2CS could not find entry with key '%s'" % uid
 
         if entry["role"] == "PROD":
             self.app_svr_socket.send_string("Sending Prod listeners...")
             entry["prod_listeners"] = req["prod_listeners"]
-            print("Received Prod listeners: %s" % entry["prod_listeners"])
+            s2cs_logger.info("Received Prod listeners: %s" % entry["prod_listeners"])
             entry = {
                       "listeners": entry["listeners"],
                       "prod_listeners": entry["prod_listeners"]
@@ -161,6 +178,8 @@ class S2CS(Machine):
             entry = {
                       "listeners": entry["listeners"]
             }
+
+        print("Sending listeners to S2UC...")
         self.resp = pickle.dumps(entry)
 
     # Send value in "self.resp" to S2UC
@@ -173,6 +192,14 @@ class S2CS(Machine):
         err_msg = "ERROR: %s" % event.error
         print(err_msg)
 
+        # Send error responses to ProdApp/ConsApp
+        if (event.event.name == "Hello"):
+            self.app_svr_socket.send_string(err_msg)
+            self.resp = pickle.dumps(err_msg)
+            self.Reset()
+            raise AssertionError(err_msg)
+
+        # Send error responses to S2UC
         if (event.event.name == "REL" or event.event.name == "ErrorRel"):
             self.resp = pickle.dumps(err_msg)
             self.send_resp(event)
@@ -227,57 +254,54 @@ class S2CS(Machine):
 
 if __name__ == '__main__':
     opts, args = parseOptions()
+
+    # Verbose logging output
+    if opts.verbose:
+        formatter = logging.Formatter(fmt="%(message)s")
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(formatter)
+        s2cs_logger.addHandler(handler)
+        s2cs_logger.setLevel(logging.INFO)
     s2cs = S2CS(opts.s2_port, opts.app_port, opts.listener_ip)
 
     while True:
         try:
             #  Wait for next request from S2UC or Prod/Cons App
             sockets = dict(s2cs.poller.poll())
-            print(sockets)
 
             # Received request from S2UC
             if s2cs.s2_svr_socket in sockets:
                 s2_request = s2cs.s2_svr_socket.recv()
                 s2_message = pickle.loads(s2_request)
-                print("Received S2UC request:", s2_message['cmd'])
+                print("\nReceived S2UC request:", s2_message['cmd'])
 
                 # Requesting resources
                 if s2_message['cmd'] == 'REQ':
                     s2cs.REQ(req=s2_message, tag="S2UC_REQ")
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
                     s2cs.Reserve(req=s2_message)
-                    print("Current state: %s " % s2cs.state)
-
-                    # # Listen on ProdApp/ConsApp port for Hello
-                    # app_request = s2cs.app_svr_socket.recv()
-                    # app_message = pickle.loads(app_request)
-                    # print("Received App request:", app_message['cmd'])
-                    #
-                    # if app_message['cmd'] == 'Hello':
-                    #     s2cs.Hello(req=app_message)
-                    #     print("Current state: %s " % s2cs.state)
-                    # else:
-                    #     s2cs.app_svr_socket.send_string("RESP: %s message not supported" % app_message)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
 
                 # Updating targets
                 elif s2_message['cmd'] == 'UpdateTargets':
                     s2cs.UpdateTargets(req=s2_message, tag="S2UC_UPD")
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
                     s2cs.RESP()
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
 
                 # Releasing resources
                 elif s2_message['cmd'] == 'REL':
                     s2cs.REL(req=s2_message, tag="S2UC_REL", resp="Resources released")
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
                     # TODO: Signal to producer/consumer that request was released?
                     s2cs.RESP()
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
 
                 # Error in request sent from S2UC
                 elif s2_message['cmd'] == 'ERROR':
                     s2cs.ERROR()
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
                     s2cs.ErrorRel(req=s2_message, tag="S2UC_ERR", resp="Resources released")
 
                 # Unknown command
@@ -288,13 +312,13 @@ if __name__ == '__main__':
             if s2cs.app_svr_socket in sockets:
                 app_request = s2cs.app_svr_socket.recv()
                 app_message = pickle.loads(app_request)
-                print("Received App request:", app_message['cmd'])
+                print("\nReceived App request:", app_message['cmd'])
 
                 if app_message['cmd'] == 'Hello':
                     s2cs.Hello(req=app_message)
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
                     s2cs.RESP()
-                    print("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s " % s2cs.state)
                 else:
                     s2cs.app_svr_socket.send_string("RESP: %s message not supported" % app_message)
 

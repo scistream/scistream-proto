@@ -1,6 +1,6 @@
 {
     "cmd": "REL",
-    "uid": "3e9b90f4-e352-11eb-9444-0b5eba0d76cb",
+    "uid": "75d1c98e-ea4c-11eb-bf87-c732b1e1ec64",
     "prod": "localhost:5000",
     "cons": "localhost:6000"
 }
