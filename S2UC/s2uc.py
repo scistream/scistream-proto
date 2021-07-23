@@ -53,10 +53,10 @@ class S2UC(Machine):
 
         # TODO: Remove hard-coded prod_app_listeners and ProdApp->S2CS ports
         prod_app_listeners = ['127.0.0.1:7000', '127.0.0.1:17000', '127.0.0.1:27000', '127.0.0.1:37000', '127.0.0.1:47000']
-        temp_prod_cli = ['python', 'send_hello.py', '--s2cs-port', '5500', '--uid', str(uid)]
+        temp_prod_cli = ['python', 'send_hello.py', '--s2cs-port', self.prod_app_port, '--uid', str(uid)]
         for l in prod_app_listeners:
             temp_prod_cli.extend(['--prod-listener', l])
-        temp_cons_cli = ['python', 'send_hello.py', '--s2cs-port', '6500', '--uid', str(uid)]
+        temp_cons_cli = ['python', 'send_hello.py', '--s2cs-port', self.cons_app_port, '--uid', str(uid)]
         if opts.verbose:
             temp_prod_cli.extend(['--v'])
             temp_cons_cli.extend(['--v'])
@@ -66,8 +66,8 @@ class S2UC(Machine):
 
         self.prod_resp = pickle.loads(self.prod_soc.recv())
         self.cons_resp = pickle.loads(self.cons_soc.recv())
-        s2uc_logger.info("Producer response:", self.prod_resp)
-        s2uc_logger.info("Consumer response:", self.cons_resp)
+        s2uc_logger.info("Producer response: %s" % self.prod_resp)
+        s2uc_logger.info("Consumer response: %s" % self.cons_resp)
         assert str(self.prod_resp)[:6] != "ERROR:", self.prod_resp
         assert str(self.cons_resp)[:6] != "ERROR:", self.cons_resp
 
@@ -134,9 +134,9 @@ class S2UC(Machine):
 
         # TODO: If list sizes do not match, edit lists to evenly distribute resources (see s2cs.py itertools)
         print("Creating connection map...")
-        s2uc_logger.info("Producer listeners: %s" % self.prod_lstn)
         s2uc_logger.info("ProdApp listeners: %s" % self.prod_app_lstn)
-        s2uc_logger.info("Consumer listeners: %s" % self.cons_lstn)
+        s2uc_logger.info("Producer S2DS listeners: %s" % self.prod_lstn)
+        s2uc_logger.info("Consumer S2DS listeners: %s" % self.cons_lstn)
 
     # Error handler
     def handle_error(self, event):
@@ -170,6 +170,10 @@ class S2UC(Machine):
         self.cons_lstn = None
         self.prod_resp = None
         self.cons_resp = None
+
+        # TODO: Allow this to be configurable?
+        self.prod_app_port = '5500' # ProdApp->S2CS port
+        self.cons_app_port = '6500' # ConsApp->S2CS port
 
         # Create client sockets
         prod_ctx = zmq.Context()
@@ -240,8 +244,11 @@ def new_s2uc_request(req_file):
                     'num_conn': num_conn,
                     'rate': rate
             }
+            # TODO: Return uid, prod_app_port, and cons_app_port to "user" application
             if opts.verbose:
-                s2uc_logger.info("Sending request:", req)
+                s2uc_logger.info("Sending request: %s" % req)
+                s2uc_logger.info("ProdApp->S2CS port: %s" % s2uc.prod_app_port)
+                s2uc_logger.info("ConsApp->S2CS port: %s" % s2uc.cons_app_port)
             else:
                 print("Sending request with uid '%s'" % str(id))
             s2uc.SendReq(req=req)
@@ -269,7 +276,7 @@ def new_s2uc_request(req_file):
                     'uid': uid
             }
             if opts.verbose:
-                s2uc_logger.info("Sending release:", req)
+                s2uc_logger.info("Sending release: %s" % req)
             else:
                 print("Sending release with uid '%s'" % uid)
             s2uc.SendRel(req=req)

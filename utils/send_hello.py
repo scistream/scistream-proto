@@ -37,5 +37,5 @@ socket.connect("tcp://localhost:%s" % opts.s2cs_port)
 
 print("send_hello.py: Sending Hello...")
 socket.send(pickle.dumps(message))
-resp = socket.recv_string()
+resp = pickle.loads(socket.recv())
 send_hello_logger.info("Received reply: %s" % resp)

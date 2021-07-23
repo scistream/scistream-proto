@@ -166,7 +166,7 @@ class S2CS(Machine):
         assert entry != None, "S2CS could not find entry with key '%s'" % uid
 
         if entry["role"] == "PROD":
-            self.app_svr_socket.send_string("Sending Prod listeners...")
+            self.app_svr_socket.send(pickle.dumps("Sending Prod listeners..."))
             entry["prod_listeners"] = req["prod_listeners"]
             s2cs_logger.info("Received Prod listeners: %s" % entry["prod_listeners"])
             entry = {
@@ -174,11 +174,12 @@ class S2CS(Machine):
                       "prod_listeners": entry["prod_listeners"]
             }
         else:
-            self.app_svr_socket.send_string("I'm Cons, nothing to send.")
             entry = {
                       "listeners": entry["listeners"]
             }
+            self.app_svr_socket.send(pickle.dumps(entry)) # Send consumer s2ds listeners to ConsApp
 
+        # TODO: Only send producer s2ds "listeners" to S2UC?
         print("Sending listeners to S2UC...")
         self.resp = pickle.dumps(entry)
 
@@ -279,29 +280,29 @@ if __name__ == '__main__':
                 # Requesting resources
                 if s2_message['cmd'] == 'REQ':
                     s2cs.REQ(req=s2_message, tag="S2UC_REQ")
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
                     s2cs.Reserve(req=s2_message)
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
 
                 # Updating targets
                 elif s2_message['cmd'] == 'UpdateTargets':
                     s2cs.UpdateTargets(req=s2_message, tag="S2UC_UPD")
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
                     s2cs.RESP()
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
 
                 # Releasing resources
                 elif s2_message['cmd'] == 'REL':
                     s2cs.REL(req=s2_message, tag="S2UC_REL", resp="Resources released")
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
                     # TODO: Signal to producer/consumer that request was released?
                     s2cs.RESP()
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
 
                 # Error in request sent from S2UC
                 elif s2_message['cmd'] == 'ERROR':
                     s2cs.ERROR()
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
                     s2cs.ErrorRel(req=s2_message, tag="S2UC_ERR", resp="Resources released")
 
                 # Unknown command
@@ -316,9 +317,9 @@ if __name__ == '__main__':
 
                 if app_message['cmd'] == 'Hello':
                     s2cs.Hello(req=app_message)
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
                     s2cs.RESP()
-                    s2cs_logger.info("Current state: %s " % s2cs.state)
+                    s2cs_logger.info("Current state: %s" % s2cs.state)
                 else:
                     s2cs.app_svr_socket.send_string("RESP: %s message not supported" % app_message)
 
