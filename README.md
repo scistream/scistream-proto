@@ -7,22 +7,18 @@ Install dependencies (ZeroMQ, transitions, and OptionParser) using the following
 pip install -r requirements.txt
 ~~~~
 
-Open two terminal windows and run the following commands to start Prod and Cons S2DS:
+Open two terminals and run the following commands to start Prod and Cons S2CS:
 ~~~
-python S2DS/s2ds.py --port=5001
-python S2DS/s2ds.py --port=6001
-~~~
-
-Open two other terminals and run the following commands to start Prod and Cons S2CS:
-~~~
-python S2CS/s2cs.py --svr-port=5000 --clt-port=5001
-python S2CS/s2cs.py --svr-port=6000 --clt-port=6001
+python S2CS/s2cs.py --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1
+python S2CS/s2cs.py --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1
 ~~~
 
 In another terminal, run the following command to test a request (REQ) using the S2UC:
 ~~~
-python S2UC/s2uc.py --req-file=S2UC/test_req.json
+python S2UC/s2uc.py
 ~~~
+
+TODO: Below information is outdated
 
 You should see something like this on the S2DS:
 ~~~
