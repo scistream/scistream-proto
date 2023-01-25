@@ -3,6 +3,7 @@ import zmq
 import sys
 import pickle
 import logging
+import context
 
 send_hello_logger = logging.getLogger("send_hello.py")
 
@@ -30,13 +31,9 @@ if (opts.prod_listeners != []):
     message = {"cmd": "Hello", "uid": opts.uid, "prod_listeners": opts.prod_listeners}
 else:
     message = {"cmd": "Hello", "uid": opts.uid}
-context = zmq.Context()
-send_hello_logger.info("Connecting to server...")
-socket = context.socket(zmq.REQ)
-socket.connect("tcp://localhost:%s" % opts.s2cs_port)
+socket = context.mocksocket()
 
 print("send_hello.py: Sending Hello...")
 socket.send(pickle.dumps(message))
-print(message)
 resp = pickle.loads(socket.recv())
 send_hello_logger.info("Received reply: %s" % resp)
