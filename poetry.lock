@@ -220,18 +220,14 @@ files = [
 
 [[package]]
 name = "termcolor"
-version = "2.2.0"
-description = "ANSI color formatting for output in terminal"
+version = "1.1.0"
+description = "ANSII Color formatting for output in terminal."
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = "*"
 files = [
-    {file = "termcolor-2.2.0-py3-none-any.whl", hash = "sha256:91ddd848e7251200eac969846cbae2dacd7d71c2871e92733289e7e3666f48e7"},
-    {file = "termcolor-2.2.0.tar.gz", hash = "sha256:dfc8ac3f350788f23b2947b3e6cfa5a53b630b612e6cd8965a015a776020b99a"},
+    {file = "termcolor-1.1.0.tar.gz", hash = "sha256:1d6d69ce66211143803fbc56652b41d73b4a400a2891d7bf7a1cdf4c02de613b"},
 ]
-
-[package.extras]
-tests = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "transitions"
@@ -269,5 +265,5 @@ pyzmq = "*"
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.9"
-content-hash = "703ae93b5c3040b05ceadd46a1e6bc521e79c24839b2605b67a03095c9e4ed5c"
+python-versions = "^3.6"
+content-hash = "4071c04f0b77e2a3ba49b3ce5c5adc199a40a9edd673ebc82d99f8e05d112508"

@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "scistream_proto"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.6"
 zmq = "^0.0.0"
 transitions = "^0.9.0"
 optparse-pretty = "^0.1.1"
