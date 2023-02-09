@@ -11,6 +11,8 @@ pytest
 This also depends on the scistream project. So the first step is compiling that piece
 
 ~~~
+git submodule init
+git submodule update
 cd scistream/S2DS
 make
 cd ../../
