@@ -7,26 +7,24 @@ pytest
 ~~~
 
 
-## Quick Start
-Ensure you have Python 3 and pip3 installed in your environment.
+## Quick Start Development enviornment
+This also depends on the scistream project. So the first step is compiling that piece
+
+~~~
+cd scistream/S2DS
+make
+cd ../../
+~~~
+
+
+Ensure you have Python 3.9 and poetry installed in your environment.
+
 Install dependencies (ZeroMQ, transitions, and OptionParser) using the following command:
 ~~~
-pip install -r requirements.txt
+poetry install
+poetry shell
+pytest -s -k single
 ~~~~
-
-Open two terminals and run the following commands to start Prod and Cons S2CS:
-~~~
-python S2CS/s2cs.py --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1
-python S2CS/s2cs.py --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1
-~~~
-In another terminal, run the following command to test a request (REQ) using the S2UC:
-~~~
-$ python S2UC/s2uc.py                                                                                                                                          
-Enter user request file name:                                                                                                                             test_req.json
-~~~
-
-TODO: Below information is outdated
-
 You should see something like this on the S2DS:
 ~~~
 S2DS server running on port TCP/5001

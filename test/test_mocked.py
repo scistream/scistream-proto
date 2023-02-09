@@ -10,7 +10,7 @@ import sys
 import test.context as context
 from test.context import s2uc
 import pytest
-import S2C.s2uc
+import S2UC.s2uc
 
 class clientMocked(s2uc.S2client):
 
@@ -46,7 +46,7 @@ def test_integrated():
         cli2 = "python S2CS/s2cs.py --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
         p2=subprocess.Popen(shlex.split(cli2))
         time.sleep(0.5)
-        client=S2C.s2uc.S2client()
+        client=s2uc.S2client()
         uid=client.req(5,10000,"localhost:5000", "localhost:6000")
         time.sleep(0.5)
         client.rel(uid,"localhost:5000","localhost:6000")
@@ -62,7 +62,7 @@ def test_threadsingleclient():
         p2=subprocess.Popen(shlex.split(cli2))
         time.sleep(0.2)
         def req():
-            client=S2C.s2uc.S2client()
+            client=s2uc.S2client()
             uid=client.req(5,10000,"localhost:5000", "localhost:6000")
             return uid
             time.sleep(0.1)
@@ -86,7 +86,7 @@ def test_threadmulticlient():
         p2=subprocess.Popen(shlex.split(cli2))
         time.sleep(0.5)
         def req():
-            client=S2C.s2uc.S2client()
+            client=s2uc.S2client()
             uid=client.req(5,10000,"localhost:5000", "localhost:6000")
             return uid
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:

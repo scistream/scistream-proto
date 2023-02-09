@@ -124,7 +124,7 @@ class S2CS():
         print("Starting S2DS subprocess(es)...")
         # TODO: Combine repos for reliable relative path
         origWD = os.getcwd()
-        os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../../scistream/S2DS'))
+        os.chdir(os.path.join(os.path.abspath(sys.path[0]), '../scistream/S2DS'))
         entry["s2ds_proc"] = []
         entry["listeners"] = []
 
