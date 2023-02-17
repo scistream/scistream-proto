@@ -1,14 +1,18 @@
 # SciStream Control Protocol
+The SciStream protocol attempts to tackle the problem of enabling high-speed,
+memory-to-memory data streaming in scientific environments.
+This task is particularly challenging because data producers
+(e.g., data acquisition applications on scientific instruments, simulations on supercomputers)
+and consumers (e.g., data analysis applications) may be in different security domains
+(and thus require bridging of those domains).
+Furthermore, either producers, consumers, or both may lack external network connectivity (and thus require traffic forwarding proxies).
+If you want to learn more, please take a look at our [HPDC'22 paper](https://dl.acm.org/doi/abs/10.1145/3502181.3531475).
 
-## test
+## Pre-requisites
+Ensure you have Python 3.9+ and [poetry](https://python-poetry.org/docs/) installed in your environment.
 
-~~~
-pytest
-~~~
-
-
-## Quick Start Development enviornment
-This also depends on the scistream project. So the first step is compiling that piece
+## Quick Start Development Environment
+This may depends on the SciStream project, so the first step is to compile the SciStream Data Server (S2DS) submodule.
 
 ~~~
 git submodule init
@@ -18,90 +22,83 @@ make
 cd ../../
 ~~~
 
-
-Ensure you have Python 3.9 and poetry installed in your environment.
-
-Install dependencies (ZeroMQ, transitions, and OptionParser) using the following command:
+Install dependencies (ZeroMQ, transitions, OptionParser, and fire) using the following commands:
 ~~~
 poetry install
 poetry shell
 pytest -s -k single
 ~~~~
-You should see something like this on the S2DS:
+
+The output of the test should look like this:
 ~~~
-S2DS server running on port TCP/5001
-Received request:  {'cmd': 'REQ', 'uid': 'd22dbcb2-c4e3-11eb-8913-4709f8fbb45d', 'num_conn': 1, 'rate': 10000, 'role': 'PROD'}
-Reserving S2DS resources...
-Current state: reserving
-Current state: idle
-Received request:  {'cmd': 'UpdateTargets'}
+==================================================================================== test session starts =====================================================================================
+platform linux -- Python 3.10.6, pytest-7.2.1, pluggy-0.13.0
+rootdir: <your_path>/scistream-proto
+collected 5 items / 4 deselected / 1 selected                                                                                                                                                
+
+test/test_mocked.py S2UC->S2CS server running on port TCP/5000
+S2UC->S2CS server running on port TCP/6000
+ProdApp/ConsApp->S2CS server running on port TCP/6500
+ProdApp/ConsApp->S2CS server running on port TCP/5500
+S2UC STARTED THIS
+61de360e-aedd-11ed-a409-dfa803110f10
+S2UC Requesting producer resources...
+S2UC Requesting consumer resources...
+
+Received S2UC request: REQ
+Client Requesting Resources
+Reserving resources...
+Starting S2DS subprocess(es)...
+
+Received S2UC request: REQ
+Client Requesting Resources
+Reserving resources...
+Starting S2DS subprocess(es)...
+Resources reserved
+Resources reserved
+send_hello.py: Sending Hello...
+{'cmd': 'Hello', 'uid': '61de360e-aedd-11ed-a409-dfa803110f10', 'prod_listeners': ['127.0.0.1:7000', '127.0.0.1:17000', '127.0.0.1:27000', '127.0.0.1:37000', '127.0.0.1:47000']}
+
+Received S2UC request: Hello
+Sending listeners to S2UC...
+send_hello.py: Sending Hello...
+{'cmd': 'Hello', 'uid': '61de360e-aedd-11ed-a409-dfa803110f10'}
+
+Received S2UC request: Hello
+Sending listeners to S2UC...
+Sending updated connection map information...
+
+Received S2UC request: UpdateTargets
 Updating targets...
-Current state: updating
-Current state: idle
+S2DS subprocess establishing connection with 127.0.0.1:7000...
+S2DS subprocess establishing connection with 127.0.0.1:17000...
+S2DS subprocess establishing connection with 127.0.0.1:27000...
+S2DS subprocess establishing connection with 127.0.0.1:37000...
+S2DS subprocess establishing connection with 127.0.0.1:47000...
+Targets updated
+Connection map information successfully updated
+
+Received S2UC request: UpdateTargets
+Updating targets...
+S2DS subprocess establishing connection with 127.0.0.1:33355...
+S2DS subprocess establishing connection with 127.0.0.1:44407...
+S2DS subprocess establishing connection with 127.0.0.1:39599...
+S2DS subprocess establishing connection with 127.0.0.1:42925...
+S2DS subprocess establishing connection with 127.0.0.1:42789...
+Targets updated
+Connection map information successfully updated
+*** Process time: 0.17001748085021973 sec.
+.
+
+============================================================================== 1 passed, 4 deselected in 1.50s ===============================================================================
 ~~~
 
-Something like this on the S2CS:
+## Testing
+
 ~~~
-S2CS server running on port TCP/5000
-Connecting to S2DS...
-Received request:  REQ
-Key-value store update: {'d22dbcb2-c4e3-11eb-8913-4709f8fbb45d': {'role': 'PROD', 'num_conn': 1, 'rate': 10000}}
-Requesting resources...
-Current state: reserving
-Current state: listening
-Received request:  Hello
-ACK
-Current state: idle
-Received request:  UpdateTargets
-Unrecognized message
-Targets: A --> B
-Current state: updating
-Unrecognized message
-Current state: idle
+pytest
 ~~~
 
-And something like this for S2UC:
-~~~
-Connecting to Producer S2CS...
-Connecting to Consumer S2CS...
-Requesting producer resources...
-Requesting consumer resources...
-Current state: reserving
-Creating connection map...
-Producer listeners: ['localhost:50000']
-Consumer listeners: ['localhost:60000']
-Current state: provisioning
-Connecting to server...
-Sending Hello...
-Received reply: Sending Prod listeners...
-Connecting to server...
-Sending Hello...
-Received reply: I'm Cons, nothing to send.
-Updating targets: None
-Producer response: Targets updated
-Consumer response: Targets updated
-Current state: updating
-Current state: idle
-*** Process time: 0.18410491943359375 sec.
-~~~
-
-Notice both S2DS and S2CS should return to idle state.
-In another terminal, run the following command to test a release (REL) using the S2UC:
-~~~
-python S2UC/s2uc.py --req-file=S2UC/test_rel.json
-~~~
-
-You should see similar results (i.e., state machines returning to idle state).
-To quit, press Ctrl+C on S2DS/S2CS terminal windows.
-
-## Motivation
-The SciStream protocol attempts to tackle the problem of enabling high-speed,
-memory-to-memory data streaming in scientific environments.
-This task is particularly challenging because data producers
-(e.g., data acquisition applications on scientific instruments, simulations on supercomputers)
-and consumers (e.g., data analysis applications) may be in different security domains
-(and thus require bridging of those domains).
-Furthermore, either producers, consumers, or both may lack external network connectivity (and thus require traffic forwarding proxies).
 
 ## Specification
 
