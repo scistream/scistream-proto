@@ -12,6 +12,23 @@ from test.context import s2uc
 import pytest
 import S2UC.s2uc
 
+"""
+
+What happens when we have incorrect input from the client?
+   TODO create tests for this
+
+What happens if one of the functions inside recv fails before replying to the client?
+
+How do we communicate errors to the user
+
+What happens at every step of the common workflow?
+
+The implementation of S2CS relies in the implementation of s2ds
+S2DS needs to run and expose 2 APIs - 1 to ReqLsts and 1 to Update targets
+
+"""
+
+
 class clientMocked(s2uc.S2client):
 
     def sendmsg(self,msg,other):
@@ -41,9 +58,9 @@ def test_mocked():
 
 def test_integrated():
     try:
-        cli = "python S2CS/s2cs.py --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1"
+        cli = "python S2CS/s2cs.py start --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1"
         p1=subprocess.Popen(shlex.split(cli))
-        cli2 = "python S2CS/s2cs.py --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
+        cli2 = "python S2CS/s2cs.py start --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
         p2=subprocess.Popen(shlex.split(cli2))
         time.sleep(0.5)
         client=s2uc.S2client()
@@ -56,9 +73,9 @@ def test_integrated():
 
 def test_threadsingleclient():
     try:
-        cli = "python S2CS/s2cs.py --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1"
+        cli = "python S2CS/s2cs.py start --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1"
         p1=subprocess.Popen(shlex.split(cli))
-        cli2 = "python S2CS/s2cs.py --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
+        cli2 = "python S2CS/s2cs.py start --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
         p2=subprocess.Popen(shlex.split(cli2))
         time.sleep(0.2)
         def req():
@@ -80,9 +97,9 @@ def test_threadsingleclient():
 def test_threadmulticlient():
     ## TODO lacking assertion
     try:
-        cli = "python S2CS/s2cs.py --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1"
+        cli = "python S2CS/s2cs.py start --s2-port=5000 --app-port=5500 --listener-ip=127.0.0.1"
         p1=subprocess.Popen(shlex.split(cli))
-        cli2 = "python S2CS/s2cs.py --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
+        cli2 = "python S2CS/s2cs.py start --s2-port=6000 --app-port=6500 --listener-ip=127.0.0.1"
         p2=subprocess.Popen(shlex.split(cli2))
         time.sleep(0.5)
         def req():
