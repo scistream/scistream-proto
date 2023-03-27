@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package scistream;
+
+message Request {
+    string uid = 1;
+    string role = 2;
+    int32 num_conn = 3;
+    int32 rate = 4;
+}
+
+message UpdateTargets {
+    string uid = 1;
+    repeated string remote_listeners = 2;
+}
+
+message Release {
+    string uid = 1;
+}
+
+message Hello {
+    string uid = 1;
+    repeated string prod_listeners = 2;
+}
+
+message Response {
+    repeated string listeners = 1;
+    repeated string prod_listeners = 2;
+}
+
+message AppResponse {
+    string message = 1;
+}
+
+service Control {
+    rpc req (Request) returns (Response);
+    rpc update (UpdateTargets) returns (Response);
+    rpc release (Release) returns (Response);
+    rpc hello (Hello) returns (AppResponse);
+}

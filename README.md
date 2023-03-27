@@ -22,76 +22,16 @@ make
 cd ../../
 ~~~
 
-Install dependencies (ZeroMQ, transitions, OptionParser, and fire) using the following commands:
+Install dependencies using the following commands:
 ~~~
 poetry install
 poetry shell
-pytest -s -k single
+python S2CS/s2cs-new.py start --port=5000 --listener-ip=127.0.0.1
+python S2CS/s2cs-new.py start --port=6000 --listener-ip=127.0.0.1
+python S2CS/s2uc-new.py request
 ~~~~
 
 The output of the test should look like this:
-~~~
-==================================================================================== test session starts =====================================================================================
-platform linux -- Python 3.10.6, pytest-7.2.1, pluggy-0.13.0
-rootdir: <your_path>/scistream-proto
-collected 5 items / 4 deselected / 1 selected                                                                                                                                                
-
-test/test_mocked.py S2UC->S2CS server running on port TCP/5000
-S2UC->S2CS server running on port TCP/6000
-ProdApp/ConsApp->S2CS server running on port TCP/6500
-ProdApp/ConsApp->S2CS server running on port TCP/5500
-S2UC STARTED THIS
-61de360e-aedd-11ed-a409-dfa803110f10
-S2UC Requesting producer resources...
-S2UC Requesting consumer resources...
-
-Received S2UC request: REQ
-Client Requesting Resources
-Reserving resources...
-Starting S2DS subprocess(es)...
-
-Received S2UC request: REQ
-Client Requesting Resources
-Reserving resources...
-Starting S2DS subprocess(es)...
-Resources reserved
-Resources reserved
-send_hello.py: Sending Hello...
-{'cmd': 'Hello', 'uid': '61de360e-aedd-11ed-a409-dfa803110f10', 'prod_listeners': ['127.0.0.1:7000', '127.0.0.1:17000', '127.0.0.1:27000', '127.0.0.1:37000', '127.0.0.1:47000']}
-
-Received S2UC request: Hello
-Sending listeners to S2UC...
-send_hello.py: Sending Hello...
-{'cmd': 'Hello', 'uid': '61de360e-aedd-11ed-a409-dfa803110f10'}
-
-Received S2UC request: Hello
-Sending listeners to S2UC...
-Sending updated connection map information...
-
-Received S2UC request: UpdateTargets
-Updating targets...
-S2DS subprocess establishing connection with 127.0.0.1:7000...
-S2DS subprocess establishing connection with 127.0.0.1:17000...
-S2DS subprocess establishing connection with 127.0.0.1:27000...
-S2DS subprocess establishing connection with 127.0.0.1:37000...
-S2DS subprocess establishing connection with 127.0.0.1:47000...
-Targets updated
-Connection map information successfully updated
-
-Received S2UC request: UpdateTargets
-Updating targets...
-S2DS subprocess establishing connection with 127.0.0.1:33355...
-S2DS subprocess establishing connection with 127.0.0.1:44407...
-S2DS subprocess establishing connection with 127.0.0.1:39599...
-S2DS subprocess establishing connection with 127.0.0.1:42925...
-S2DS subprocess establishing connection with 127.0.0.1:42789...
-Targets updated
-Connection map information successfully updated
-*** Process time: 0.17001748085021973 sec.
-.
-
-============================================================================== 1 passed, 4 deselected in 1.50s ===============================================================================
-~~~
 
 ## Testing
 
