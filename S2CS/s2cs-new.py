@@ -1,20 +1,17 @@
-import logging
 import fire
 import grpc
 import sys
 import threading
 import scistream_pb2
 import scistream_pb2_grpc
-import models
 
 from s2ds import S2DS
-from itertools import cycle, islice
 from concurrent import futures
-from models import S2CSException
+from utils import request_decorator, set_verbosity
 
-logging.basicConfig(level=logging.DEBUG)
-#grpc_logger = logging.getLogger("grpc")
-#grpc_logger.setLevel(logging.DEBUG)
+class S2CSException(Exception):
+    ##
+    pass
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
@@ -22,117 +19,74 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.response = None
         self.resource_map = {}
         self.listener_ip = listener_ip
-        self.set_verbosity(verbose)
-
-    def set_verbosity(self, verbose):
-        #grpc_logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-        self.logger = logging.getLogger(__name__)
-        #handler = logging.StreamHandler(sys.stdout)
-        self.logger.setLevel(logging.DEBUG)
-        #handler.setLevel(logging.DEBUG if verbose else logging.INFO)
-        #handler.setFormatter(formatter)
-        #self.logger.addHandler(handler)
+        set_verbosity(self, verbose)
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
+    @request_decorator
     def req(self, request: scistream_pb2.Request, context):
-        self.logger.info("Client Request Received")
-        #models.validate_request(request)
-        uid = request.uid
-        if self.resource_map.get(uid):
-            raise S2CSException("Entry already found for uid")
-        self.resource_map[uid] = {
+        self.resource_map[request.uid] = {
             "role": request.role,
             "num_conn": request.num_conn,
             "rate": request.rate,
             "hello_received": threading.Event()
         }
-        self.logger.debug(f"Added key: '{uid}' with entry: {self.resource_map[uid]}")
+        self.logger.debug(f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}")
         self.s2ds= S2DS()
         reply = self.s2ds.start(request.num_conn, self.listener_ip)
-        self.resource_map[uid].update(reply)
+        self.resource_map[request.uid].update(reply)
 
-        hello_received = self.resource_map[uid]['hello_received'].wait(S2CS.TIMEOUT)
+        hello_received = self.resource_map[request.uid]['hello_received'].wait(S2CS.TIMEOUT)
 
         if not hello_received:
-            self.release_request(uid)
+            self.release_request(request.uid)
             raise S2CSException(f"Hello not received within the timeout period")
-        else:
-            self.logger.info("Resources reserved")
-            self.logger.debug(f"S2DS subprocess(es) reserved listeners: {self.resource_map[uid]['listeners']}")
-            self.logger.debug(f"{self.response}")
 
         return self.response
 
+    @request_decorator
     def update(self, request, context):
-        self.logger.info(f"Targets updated for uid {request.uid}")
-        if request.uid not in self.resource_map:
-            raise S2CSException(f"Attempting to update nonexistent entry with key '{request.uid}'" )
+        #improve validation
+        listeners=request.remote_listeners
         entry = self.resource_map[request.uid]
-        #models.validate_update(request, entry)
         if (entry["role"] == "PROD"):
-            if len(request.remote_listeners) < entry["num_conn"]:
-                request.remote_listeners = list(islice(cycle(request.remote_listeners), entry["num_conn"]))
+            listeners = [ listeners[ i % len(listeners) ] for i in range(entry["num_conn"]) ]
         else:
-            entry["prods2cs_listeners"] = request.remote_listeners  # Include remote listeners for transparency to user
-        # Send remote port information to S2DS subprocesses in format "remote_ip:remote_port\n"
-        for i in range(len(request.remote_listeners)):
-            curr_proc = entry["s2ds_proc"][i]
-            curr_remote_conn = request.remote_listeners[i] + "\n"
-            if curr_proc.poll() is not None:
-                raise S2CSException(f"S2DS subprocess with PID '{curr_proc.pid}' unexpectedly quit")
-            curr_proc.stdin.write(curr_remote_conn.encode())
-            curr_proc.stdin.flush()
-            self.logger.info(f"S2DS subprocess establishing connection with {curr_remote_conn.strip()}...")
-        self.logger.info("Targets updated")
-        response = scistream_pb2.Response(listeners=entry["listeners"], prod_listeners=request.remote_listeners)
+            entry["prods2cs_listeners"] = listeners
+            # Include remote listeners for transparency to user
+        self.s2ds.update_listeners(listeners, entry["s2ds_proc"])
+        response = scistream_pb2.Response(listeners=entry["listeners"], prod_listeners=listeners)
         return response
 
+    @request_decorator
     def release(self, request, context):
-        self.logger.debug(f"Releasing S2DS resources for uid{request.uid}")
-        #models.validate_uid(request)
         self.release_request(request.uid)
-        response = scistream_pb2.Response(message="Resources released")
-        self.logger.info("Released S2DS resources")
+        response = scistream_pb2.Response()
         return response
 
     # Release all resources used by a particular request
     def release_request(self, uid):
-        if uid not in self.resource_map:
-            raise S2CSException("Attempting to release unexistent uid")
         removed_item = self.resource_map.pop(uid, None)
         self.s2ds.release(removed_item)
         self.logger.debug(f"Removed key: '{uid}' with entry: {removed_item}")
 
+    @request_decorator
     def hello(self, request,context):
-        self.logger.debug(f"Hello request received for uid{request.uid}")
-        #models.validate_uid(request)
-        uid=request.uid
-        if uid not in self.resource_map:
-            raise S2CSException("Attempting to update unexistent uid")
         ## Possible race condition here between REQ and HELLO
-        entry = self.resource_map[uid]
+        entry = self.resource_map[request.uid]
         if entry["role"] == "PROD":
-
             entry["prod_listeners"] = request.prod_listeners
-            self.logger.debug("Received Prod listeners: %s" % entry["prod_listeners"])
-            self.logger.debug(f"{entry.keys()}")
-            self.response = scistream_pb2.Response(
-                listeners = entry["listeners"],
-                prod_listeners = entry["prod_listeners"]
-            )
+            self.response = scistream_pb2.Response(listeners = entry["listeners"], prod_listeners = request.prod_listeners)
             AppResponse = scistream_pb2.AppResponse(message="Sending Prod listeners...")
         else:
-            self.response = scistream_pb2.Response(
-                listeners = entry["listeners"]
-            )
+            self.response = scistream_pb2.Response(listeners = entry["listeners"])
             AppResponse = scistream_pb2.AppResponse(message="Sending listeners...")
-        self.logger.info("Sending listeners to S2UC...")
         entry["hello_received"].set()
         return AppResponse
 
-def start(listener_ip='127.0.0.1', port=5000, v=False, verbose=False):
+def start(function, listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    scistream_pb2_grpc.add_ControlServicer_to_server(S2CS(listener_ip, v or verbose), server)
+    servicer = S2CS(listener_ip, verbose=(v or verbose))
+    scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
     server.add_insecure_port(f'[::]:{port}')
     server.start()
     print(f"Server started on {listener_ip}:{port}")

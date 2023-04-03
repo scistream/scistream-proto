@@ -40,3 +40,14 @@ class S2DS():
                 rem_proc.terminate() # TODO: Make sure s2ds buffer handles this signal gracefully
                 entry["s2ds_proc"][i] = rem_proc.pid # Print out PID rather than Popen object
             self.logger.info(f"Terminated {len(entry['s2ds_proc'])} S2DS subprocess(es)")
+
+    def update_listeners(self, listeners, s2ds_proc):
+        # Send remote port information to S2DS subprocesses in format "remote_ip:remote_port\n"
+        for i in range(len(listeners)):
+            curr_proc = s2ds_proc[i]
+            curr_remote_conn = listeners[i] + "\n"
+            if curr_proc.poll() is not None:
+                raise S2CSException(f"S2DS subprocess with PID '{curr_proc.pid}' unexpectedly quit")
+            curr_proc.stdin.write(curr_remote_conn.encode())
+            curr_proc.stdin.flush()
+            self.logger.info(f"S2DS subprocess establishing connection with {curr_remote_conn.strip()}...")
