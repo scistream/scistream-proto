@@ -13,8 +13,8 @@ class AppCtrl():
         )
         if role == "PROD":
             request.prod_listeners.extend(['127.0.0.1:7000', '127.0.0.1:17000', '127.0.0.1:27000', '127.0.0.1:37000', '127.0.0.1:47000'])
-        with grpc.insecure_channel(s2cs) as channel2:
-            s2cs = scistream_pb2_grpc.ControlStub(channel2)
+        with grpc.insecure_channel(s2cs) as channel:
+            s2cs = scistream_pb2_grpc.ControlStub(channel)
             response = s2cs.hello(request)
 
 if __name__ == '__main__':
