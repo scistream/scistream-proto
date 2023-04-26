@@ -3,8 +3,8 @@ import grpc
 import uuid
 import time
 import logging
-import scistream_pb2
-import scistream_pb2_grpc
+from proto import scistream_pb2
+from proto import scistream_pb2_grpc
 from concurrent import futures
 from appcontroller import AppCtrl
 

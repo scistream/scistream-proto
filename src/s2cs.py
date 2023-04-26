@@ -1,18 +1,17 @@
-from pathlib import Path
+#from pathlib import Path
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+#sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 ## This adds the scistream-proto folder to the python path
 ## everything needs to import taking that into account
 import fire
 import grpc
-import sys
 import threading
-import scistream_pb2
-import scistream_pb2_grpc
+from proto import scistream_pb2
+from proto import scistream_pb2_grpc
 
-from S2CS.s2ds import S2DS
+from s2ds import S2DS
 from concurrent import futures
-from S2CS.utils import request_decorator, set_verbosity
+from utils import request_decorator, set_verbosity
 
 class S2CSException(Exception):
     ##

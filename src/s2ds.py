@@ -1,5 +1,5 @@
 import os
-import sys
+#import sys
 import logging
 import subprocess
 from pathlib import Path
@@ -14,13 +14,11 @@ class S2DS():
 
     def start(self, num_conn, listener_ip):
         self.logger.info(f"Starting {num_conn} S2DS subprocess(es)...")
-        origWD = Path(sys.path[0])
-        s2ds_path = origWD.parent / "scistream" / "S2DS"
-        os.chdir(s2ds_path)
+        s2ds_path =  Path(__file__).resolve().parent.parent / "scistream" / "S2DS" / "S2DS.out"
         entry={"s2ds_proc":[], "listeners":[]}
         try:
             for _ in range(num_conn):
-                new_proc = subprocess.Popen(['./S2DS.out'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+                new_proc = subprocess.Popen([s2ds_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
                 new_listener_port = new_proc.stdout.readline().decode("utf-8").split("\n")[0]
                 if not new_listener_port.isdigit() or int(new_listener_port) < 0 or int(new_listener_port) > 65535:
                     raise S2DSException(f"S2DS subprocess returned invalid listener port '{new_listener_port}'")
@@ -28,10 +26,8 @@ class S2DS():
                 entry["s2ds_proc"].append(new_proc)
                 entry["listeners"].append(new_listener)
         except Exception as e:
-            os.chdir(origWD)
             self.logger.error(f"Error starting S2DS subprocess(es): {e}")
             raise S2DSException(f"Error starting S2DS subprocess(es): {e}") from e
-        os.chdir(origWD)
         return entry
 
     def release(self, entry):

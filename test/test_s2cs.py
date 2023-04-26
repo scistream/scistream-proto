@@ -4,11 +4,11 @@ import threading
 import time
 from unittest import mock
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent/ "src"))
 
 from concurrent import futures
-from scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
-from S2CS.s2cs import S2CS, S2CSException, S2DS
+from proto.scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
+from s2cs import S2CS, S2CSException, S2DS
 
 class MockS2DS(S2DS):
     def __init__(self, *args, **kwargs):

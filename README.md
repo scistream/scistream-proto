@@ -26,9 +26,9 @@ Install dependencies using the following commands:
 ~~~
 poetry install
 poetry shell
-python S2CS/s2cs-new.py start --port=5000 --listener-ip=127.0.0.1
-python S2CS/s2cs-new.py start --port=6000 --listener-ip=127.0.0.1
-python S2CS/s2uc-new.py request
+#python S2CS/s2cs-new.py start --port=5000 --listener-ip=127.0.0.1
+#python S2CS/s2cs-new.py start --port=6000 --listener-ip=127.0.0.1
+#python S2CS/s2uc-new.py request
 ~~~~
 
 The output of the test should look like this:
@@ -36,7 +36,7 @@ The output of the test should look like this:
 ## Testing
 
 ~~~
-pytest
+poetry run pytest
 ~~~
 
 
