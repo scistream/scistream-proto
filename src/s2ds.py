@@ -1,11 +1,9 @@
 import os
-#import sys
 import logging
 import subprocess
 from pathlib import Path
 
 class S2DSException(Exception):
-    ##
     pass
 
 class S2DS():

@@ -1,7 +1,7 @@
 # Usage appcontroller.py uid_value PROD localhost:5000
 import grpc
-import scistream_pb2
-import scistream_pb2_grpc
+from proto import scistream_pb2
+from proto import scistream_pb2_grpc
 
 class AppCtrl():
 

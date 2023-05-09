@@ -1,6 +1,4 @@
-#from pathlib import Path
 import sys
-#sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 ## This adds the scistream-proto folder to the python path
 ## everything needs to import taking that into account
 import fire
@@ -14,7 +12,6 @@ from concurrent import futures
 from utils import request_decorator, set_verbosity
 
 class S2CSException(Exception):
-    ##
     pass
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
@@ -87,7 +84,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         entry["hello_received"].set()
         return AppResponse
 
-def start(function, listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
+def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     servicer = S2CS(listener_ip, verbose=(v or verbose))
     scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
