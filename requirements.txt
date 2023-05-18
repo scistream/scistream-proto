@@ -1,3 +1,0 @@
-zmq
-transitions
-optparse-pretty

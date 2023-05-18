@@ -1,1 +1,3 @@
 microbrenchmarks/*
+__pycache__/
+*.py[cod]
