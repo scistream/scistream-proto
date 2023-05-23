@@ -62,8 +62,35 @@ def request(num_conn, rate, producer_s2cs, consumer_s2cs):
 
         print("Sending updated connection map information...")
         print(uid)
-        update(prod_stub, uid, prod_app_lstn)
-        update(cons_stub, uid, prod_lstn)
+        update(prod_stub, uid, prod_resp.prod_listeners)
+        update(cons_stub, uid, prod_resp.listeners)
+
+@cli.command()
+@click.option('--num_conn', type=int, default=5)
+@click.option('--rate', type=int, default=10000)
+@click.option('--s2cs', default="localhost:5000")
+def request1(num_conn, rate, s2cs):
+    with grpc.insecure_channel(s2cs) as channel1:
+        prod_stub = scistream_pb2_grpc.ControlStub(channel1)
+        uid=str(uuid.uuid1())
+        with futures.ThreadPoolExecutor(max_workers=4) as executor:
+            prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
+            time.sleep(0.1)  # Possible race condition between REQ and HELLO
+            producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs)
+            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs)
+
+            prod_resp = prod_resp_future.result()
+            producer = producer_future.result()
+            consumer = consumer_future.result()
+
+        print(prod_resp) ## Should this be printed?
+        prod_lstn = prod_resp.listeners
+        prod_app_lstn = prod_resp.prod_listeners
+
+        print("Sending updated connection map information...")
+        print(uid)
+        update(prod_stub, uid, prod_resp.listeners)
+        ## How do we tell the cons_stub 
 
 def client_request(stub, uid, role, num_conn, rate):
     try:

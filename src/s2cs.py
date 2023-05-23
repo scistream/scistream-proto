@@ -29,7 +29,8 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             "role": request.role,
             "num_conn": request.num_conn,
             "rate": request.rate,
-            "hello_received": threading.Event()
+            "hello_received": threading.Event(),
+            "prod_listeners": []
         }
         self.logger.debug(f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}")
         self.s2ds= S2DS()
@@ -49,7 +50,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         #improve validation
         listeners=request.remote_listeners
         entry = self.resource_map[request.uid]
-        if (entry["role"] == "PROD"):
+        if (request.role == "PROD"):
             listeners = [ listeners[ i % len(listeners) ] for i in range(entry["num_conn"]) ]
         else:
             entry["prods2cs_listeners"] = listeners
@@ -74,9 +75,9 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
     def hello(self, request,context):
         ## Possible race condition here between REQ and HELLO
         entry = self.resource_map[request.uid]
-        if entry["role"] == "PROD":
+        if request.role == "PROD":
             entry["prod_listeners"] = request.prod_listeners
-            self.response = scistream_pb2.Response(listeners = entry["listeners"], prod_listeners = request.prod_listeners)
+            self.response = scistream_pb2.Response(listeners = entry["listeners"], prod_listeners = entry["prod_listeners"])
             AppResponse = scistream_pb2.AppResponse(message="Sending Prod listeners...")
         else:
             self.response = scistream_pb2.Response(listeners = entry["listeners"])
