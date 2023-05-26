@@ -81,7 +81,8 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             AppResponse = scistream_pb2.AppResponse(message="Sending Prod listeners...")
         else:
             self.response = scistream_pb2.Response(listeners = entry["listeners"])
-            AppResponse = scistream_pb2.AppResponse(message="Sending listeners...")
+            AppResponse = scistream_pb2.AppResponse(message="Sending listeners...",
+                listeners = entry["listeners"])
         entry["hello_received"].set()
         return AppResponse
 

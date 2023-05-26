@@ -54,7 +54,6 @@ class ZmqProd(ProducerApplication):
 
 class ZmqConsumerApplication():
     def __init__(self, target):
-        self.port=port
         self.context = zmq.Context()
         self.subscriber = self.context.socket(zmq.SUB)
         self.subscriber.connect(f"tcp://{target}")
@@ -66,6 +65,7 @@ class ZmqConsumerApplication():
             message = self.subscriber.recv_string()
             #print("Received message: %s" % message)
             if message == 'NASDA:STOP':
+                with open('log', 'w') as f: f.write('transfer completed')
                 break
         self.subscriber.close()  # close socket when done
 
@@ -77,12 +77,14 @@ def cli():
 @click.argument('target', type=str, default="127.0.0.1:7000")
 def subscribe(target):
     consumer = ZmqConsumerApplication(target=target)
+    with open('cons.log', 'w') as f: f.write('consumer started')
     consumer.start()
 
 @cli.command()
 @click.argument('port', type=str, default="7000")
 def run_producer(port):
     producer = ZmqProd(port=port)
+    with open('prod.log', 'w') as f: f.write('producer started')
     producer.start()
 
 if __name__ == '__main__':

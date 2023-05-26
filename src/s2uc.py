@@ -75,22 +75,17 @@ def request1(num_conn, rate, s2cs):
         uid=str(uuid.uuid1())
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
-            time.sleep(0.1)  # Possible race condition between REQ and HELLO
+            time.sleep(0.2)  # Possible race condition between REQ and HELLO
             producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs)
-            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs)
-
             prod_resp = prod_resp_future.result()
             producer = producer_future.result()
+
+        update(prod_stub, uid, prod_resp.prod_listeners)
+        with futures.ThreadPoolExecutor(max_workers=4) as executor:
+            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs)
             consumer = consumer_future.result()
-
-        print(prod_resp) ## Should this be printed?
-        prod_lstn = prod_resp.listeners
-        prod_app_lstn = prod_resp.prod_listeners
-
-        print("Sending updated connection map information...")
-        print(uid)
-        update(prod_stub, uid, prod_resp.listeners)
-        ## How do we tell the cons_stub 
+            ## APPctrl communicates with Scistream
+            ## Scistream tells it what port it should send the data to
 
 def client_request(stub, uid, role, num_conn, rate):
     try:

@@ -84,7 +84,7 @@ def test_release_success(servicer):
 
 @pytest.mark.timeout(5)
 def test_req_and_hello(servicer):
-    hello_request = Hello(uid='test_uid', prod_listeners=['127.0.0.1:5000'])
+    hello_request = Hello(uid='test_uid', role='PROD', prod_listeners=['10.0.0.1:5000'])
     req_request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
     with futures.ThreadPoolExecutor(max_workers=2) as executor:
         req_future = executor.submit(lambda: servicer.req(req_request, None))
@@ -92,6 +92,21 @@ def test_req_and_hello(servicer):
         hello_future = executor.submit(lambda: servicer.hello(hello_request, None))
         hello_response = hello_future.result(timeout=2)
         req_response = req_future.result(timeout=2)
+    assert servicer.resource_map['test_uid']
+
+@pytest.mark.timeout(5)
+def test_full_request(servicer):
+    hello_request = Hello(uid='test_uid', role='PROD', prod_listeners=['10.0.0.1:5000'])
+    req_request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
+    with futures.ThreadPoolExecutor(max_workers=2) as executor:
+        req_future = executor.submit(lambda: servicer.req(req_request, None))
+        time.sleep(0.5)
+        hello_future = executor.submit(lambda: servicer.hello(hello_request, None))
+        hello_response = hello_future.result(timeout=2)
+        req_response = req_future.result(timeout=2)
+    update_request = UpdateTargets(uid='test_uid', role='PROD', remote_listeners=req_response.prod_listeners)
+    servicer.update( update_request, None )
+    print(servicer.resource_map)
     assert servicer.resource_map['test_uid']
 
 @pytest.mark.timeout(5)
