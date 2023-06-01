@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "scistream_proto"}]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 optparse-pretty = "^0.1.1"
 grpcio = "^1.51.3"
 grpcio-tools = "^1.51.3"
@@ -19,9 +19,11 @@ pytest-timeout = "^2.1.0"
 protobuf = "^4.22.3"
 pyzmq = "^25.0.2"
 
-
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.2"
+ansible-core = "2.14"
+jmespath = "^1.0.1"
+molecule = {extras = ["docker"], version = "^4.0.4"}
 
 [build-system]
 requires = ["poetry-core"]
