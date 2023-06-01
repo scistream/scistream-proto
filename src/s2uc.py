@@ -7,6 +7,7 @@ from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 from concurrent import futures
 from appcontroller import AppCtrl
+from appcontroller import IperfCtrl
 
 # Set up gRPC logging
 logging.basicConfig(level=logging.DEBUG)
@@ -87,6 +88,26 @@ def request1(num_conn, rate, s2cs):
             ## APPctrl communicates with Scistream
             ## Scistream tells it what port it should send the data to
 
+@cli.command()
+@click.option('--num_conn', type=int, default=5)
+@click.option('--rate', type=int, default=10000)
+@click.option('--s2cs', default="localhost:5000")
+def request2(num_conn, rate, s2cs):
+    with grpc.insecure_channel(s2cs) as channel1:
+        prod_stub = scistream_pb2_grpc.ControlStub(channel1)
+        uid=str(uuid.uuid1())
+        with futures.ThreadPoolExecutor(max_workers=4) as executor:
+            prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
+            time.sleep(0.2)  # Possible race condition between REQ and HELLO
+            producer_future = executor.submit(IperfCtrl, uid, "PROD", s2cs)
+            prod_resp = prod_resp_future.result()
+            producer = producer_future.result()
+        update(prod_stub, uid, prod_resp.prod_listeners)
+        with futures.ThreadPoolExecutor(max_workers=4) as executor:
+            consumer_future = executor.submit(IperfCtrl, uid, "CONS", s2cs)
+            consumer = consumer_future.result()
+            ## APPctrl communicates with Scistream
+            ## Scistream tells it what port it should send the data to
 def client_request(stub, uid, role, num_conn, rate):
     try:
         request = scistream_pb2.Request(uid=uid, role=role, num_conn=num_conn, rate=rate)
