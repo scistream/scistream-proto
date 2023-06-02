@@ -4,11 +4,13 @@ import grpc
 import zmq
 import subprocess
 import time
+import socket
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
 class AppCtrl():
     def __init__(self, uid, role, s2cs):
+        ## Maybe be a scistream notifier
         ## Actually mocking an app controller call here
         # TODO catch connection error
         request = scistream_pb2.Hello(
@@ -100,22 +102,26 @@ def run_producer(port):
     with open('prod.log', 'w') as f: f.write('producer started')
     producer.start()
 
+def check_if_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost',int(port))) == 0
+
 @cli.command()
 @click.argument('port', type=str, default="7000")
 def iperf_server(port):
-    try:
-        iperf_process = subprocess.Popen(['iperf', '-s', '-p', str(port)])  # starts iperf in server mode on a specified port
-        with open('iperf.log', 'w') as f: f.write('iperf server started')
-        print("iperf started with pid:", iperf_process.pid)
-    except Exception as e:
-        print("Error starting iperf:", str(e))
+    if not check_if_port_in_use(port):
+        subprocess.Popen(["iperf", "-s", "-p", str(port)])
+        print(f"Started iperf server on port {port}")
+    else:
+        print(f"Port {port} is already in use")
 
 @cli.command()
 @click.argument('target', type=str, default="127.0.0.1:7000")
 def iperf_client(target):
     try:
         server_ip, port = target.split(":")
-        iperf_process = subprocess.Popen(['iperf', '-c', server_ip, '-p', str(port)])
+        print("STARTING IPERF CLIENT with port:", str(port))
+        iperf_process = subprocess.Popen(['iperf', '-t', '10', '-c', server_ip, '-p', str(port)])
         print("iperf client started with pid:", iperf_process.pid)
     except Exception as e:
         print("Error starting iperf client:", str(e))

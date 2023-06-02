@@ -7,7 +7,7 @@ import threading
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
-from s2ds import S2DS
+from s2ds import S2DS, Haproxy, Nginx
 from concurrent import futures
 from utils import request_decorator, set_verbosity
 
@@ -33,7 +33,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             "prod_listeners": []
         }
         self.logger.debug(f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}")
-        self.s2ds= S2DS()
+        self.s2ds= Nginx()
         reply = self.s2ds.start(request.num_conn, self.listener_ip)
         self.resource_map[request.uid].update(reply)
 
@@ -71,6 +71,11 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.s2ds.release(removed_item)
         self.logger.debug(f"Removed key: '{uid}' with entry: {removed_item}")
 
+    def release_all(self):
+        uids = [i for i in self.resource_map]
+        for i in uids:
+            self.release_request(i)
+
     @request_decorator
     def hello(self, request,context):
         ## Possible race condition here between REQ and HELLO
@@ -87,17 +92,19 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return AppResponse
 
 def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    servicer = S2CS(listener_ip, verbose=(v or verbose))
-    scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
-    server.add_insecure_port(f'[::]:{port}')
-    server.start()
-    print(f"Server started on {listener_ip}:{port}")
-    server.wait_for_termination()
-
-if __name__ == '__main__':
     try:
-        fire.Fire(start)
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        servicer = S2CS(listener_ip, verbose=(v or verbose))
+        scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
+        server.add_insecure_port(f'[::]:{port}')
+        server.start()
+        print(f"Server started on {listener_ip}:{port}")
+        server.wait_for_termination()
     except KeyboardInterrupt:
+        servicer.release_all()
         print("\nTerminating server")
         sys.exit(0)
+
+
+if __name__ == '__main__':
+        fire.Fire(start)

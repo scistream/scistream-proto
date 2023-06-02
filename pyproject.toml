@@ -21,9 +21,6 @@ pyzmq = "^25.0.2"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.2"
-ansible-core = "2.14"
-jmespath = "^1.0.1"
-molecule = {extras = ["docker"], version = "^4.0.4"}
 
 [build-system]
 requires = ["poetry-core"]
