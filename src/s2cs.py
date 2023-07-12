@@ -11,16 +11,21 @@ from s2ds import S2DS
 from concurrent import futures
 from utils import request_decorator, set_verbosity
 
+import socket
+
 class S2CSException(Exception):
     pass
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
-    def __init__(self, listener_ip, verbose):
+    def __init__(self, listener_ip, s2ds_ip, s2ds_port, verbose):
         self.response = None
         self.resource_map = {}
         self.listener_ip = listener_ip
         set_verbosity(self, verbose)
+        self.s2ds_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        self.s2ds_ip = s2ds_ip
+        self.s2ds_port = s2ds_port
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
     @request_decorator
@@ -32,8 +37,17 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             "hello_received": threading.Event()
         }
         self.logger.debug(f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}")
-        self.s2ds= S2DS()
-        reply = self.s2ds.start(request.num_conn, self.listener_ip)
+        #self.s2ds= S2DS()
+        #reply = self.s2ds.start(request.num_conn, self.listener_ip)
+        COMMAND = "START\t"+str(request.num_conn)+"\t"+str(self.listener_ip)
+        self.s2ds_sock.sendto(COMMAND.encode('ascii'), (self.s2ds_ip, self.s2ds_port))
+        print("Sent START command to S2DS, waiting for response...")
+        reply,addr = self.s2ds_sock.recvfrom(4096)
+        reply = eval(reply.decode('ascii').strip())
+        if(type(reply) is not dict):
+            print("Reply type is ",type(reply)," and reply:",reply)
+            exit()
+
         self.resource_map[request.uid].update(reply)
 
         hello_received = self.resource_map[request.uid]['hello_received'].wait(S2CS.TIMEOUT)
@@ -53,8 +67,12 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             listeners = [ listeners[ i % len(listeners) ] for i in range(entry["num_conn"]) ]
         else:
             entry["prods2cs_listeners"] = listeners
-            # Include remote listeners for transparency to user
-        self.s2ds.update_listeners(listeners, entry["s2ds_proc"])
+            # Include remote listeners for transparency to user 
+        #self.s2ds.update_listeners(listeners, entry["s2ds_proc"])
+        COMMAND = "UPDATE\t"+str(listeners)+"\t"+str(entry["s2ds_proc"])
+        self.s2ds_sock.sendto(COMMAND.encode('ascii'), (self.s2ds_ip, self.s2ds_port))
+        print("Sent UPDATE command to S2DS")
+        
         response = scistream_pb2.Response(listeners=entry["listeners"], prod_listeners=listeners)
         return response
 
@@ -67,7 +85,10 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
     # Release all resources used by a particular request
     def release_request(self, uid):
         removed_item = self.resource_map.pop(uid, None)
-        self.s2ds.release(removed_item)
+        #self.s2ds.release(removed_item)
+        COMMAND = "RELEASE\t"+str(removed_item)
+        self.s2ds_sock.sendto(COMMAND.encode('ascii'), (self.s2ds_ip, self.s2ds_port))
+        print("Sent RELEASE command to S2DS")
         self.logger.debug(f"Removed key: '{uid}' with entry: {removed_item}")
 
     @request_decorator
@@ -84,9 +105,9 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         entry["hello_received"].set()
         return AppResponse
 
-def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
+def start(listener_ip='0.0.0.0', port=5000, s2ds_ip='0.0.0.0',s2ds_port=4321,v=False, verbose=False):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    servicer = S2CS(listener_ip, verbose=(v or verbose))
+    servicer = S2CS(listener_ip,s2ds_ip,s2ds_port,verbose=(v or verbose))
     scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
     server.add_insecure_port(f'[::]:{port}')
     server.start()

@@ -3,26 +3,32 @@ import logging
 import subprocess
 from pathlib import Path
 
+import sys
+import socket
+
 class S2DSException(Exception):
     pass
 
 class S2DS():
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-
+        self.new_proc = {}
+        self.counter = 0
     def start(self, num_conn, listener_ip):
         self.logger.info(f"Starting {num_conn} S2DS subprocess(es)...")
         s2ds_path =  Path(__file__).resolve().parent.parent / "scistream" / "S2DS" / "S2DS.out"
         entry={"s2ds_proc":[], "listeners":[]}
         try:
             for _ in range(num_conn):
-                new_proc = subprocess.Popen([s2ds_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-                new_listener_port = new_proc.stdout.readline().decode("utf-8").split("\n")[0]
+                self.new_proc[self.counter] = subprocess.Popen([s2ds_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+                new_listener_port = self.new_proc[self.counter].stdout.readline().decode("utf-8").split("\n")[0]
                 if not new_listener_port.isdigit() or int(new_listener_port) < 0 or int(new_listener_port) > 65535:
                     raise S2DSException(f"S2DS subprocess returned invalid listener port '{new_listener_port}'")
                 new_listener = listener_ip + ":" + new_listener_port
-                entry["s2ds_proc"].append(new_proc)
+                entry["s2ds_proc"].append(self.counter)
                 entry["listeners"].append(new_listener)
+                self.counter = self.counter + 1
+
         except Exception as e:
             self.logger.error(f"Error starting S2DS subprocess(es): {e}")
             raise S2DSException(f"Error starting S2DS subprocess(es): {e}") from e
@@ -38,10 +44,47 @@ class S2DS():
     def update_listeners(self, listeners, s2ds_proc):
         # Send remote port information to S2DS subprocesses in format "remote_ip:remote_port\n"
         for i in range(len(listeners)):
-            curr_proc = s2ds_proc[i]
+            curr_proc = self.new_proc[s2ds_proc[i]]
             curr_remote_conn = listeners[i] + "\n"
             if curr_proc.poll() is not None:
                 raise S2CSException(f"S2DS subprocess with PID '{curr_proc.pid}' unexpectedly quit")
             curr_proc.stdin.write(curr_remote_conn.encode())
             curr_proc.stdin.flush()
             self.logger.info(f"S2DS subprocess establishing connection with {curr_remote_conn.strip()}...")
+
+
+def main():
+    if(len(sys.argv)<3):
+        print("Expecting IP and Port for S2DS UDP Server")
+    UDP_IP = sys.argv[1]
+    UDP_PORT = int(sys.argv[2])
+
+    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPServerSocket.bind((UDP_IP, UDP_PORT))
+    print("Starting S2DS UDP Server")
+    s2ds_instance = ''
+    while(True):
+        bytesAddressPair = UDPServerSocket.recvfrom(4096)
+        command = bytesAddressPair[0]
+        client_address = bytesAddressPair[1]
+        command = command.decode('ascii').strip().split('\t')
+        if(command[0] == "START"):
+            s2ds_instance = S2DS()
+            reply = s2ds_instance.start(int(command[1]), command[2])
+            if(s2ds_instance is str):
+                print("Expecting START command before UPDATE")
+                continue
+            UDPServerSocket.sendto(str(reply).encode('ascii'), client_address)
+        elif(command[0] == "UPDATE"):
+            if(s2ds_instance is str):
+                print("Expecting START command before UPDATE")
+                continue
+            s2ds_instance.update_listeners(eval(command[1]), eval(command[2]))
+        elif(command[0] == "RELEASE"):
+            if(s2ds_instance is str):
+                print("Expecting START command before RELEASE")
+                continue
+            s2ds_instance.release(eval(command[1]))
+
+if __name__ == "__main__":
+    main()
