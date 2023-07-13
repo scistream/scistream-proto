@@ -4,7 +4,19 @@ import logging
 import sys
 import traceback
 
+from globus_sdk.tokenstorage import SQLiteAdapter
+
+from grpc import StatusCode
+
 class ValidationException(Exception):
+    ##
+    pass
+
+class UnauthorizedError(Exception):
+    ##
+    pass
+
+class ForbiddenError(Exception):
     ##
     pass
 
@@ -36,6 +48,31 @@ def request_decorator(func):
         return result
 
     return wrapper
+
+def authenticated(func):
+    """ Mark a route as requiring authentication """
+    @functools.wraps(func)
+    def decorated_function(*args, **kwargs):
+        context = args[2]
+        self = args[0]
+        metadata = dict(context.invocation_metadata())
+        auth_token = metadata.get('authorization')
+        if not auth_token or not self.validate_creds(auth_token):
+            context.abort(StatusCode.UNAUTHENTICATED, 'Authentication token is missing or invalid')
+        return func(*args, **kwargs)
+    return decorated_function
+
+def storage_adapter():
+    from globus_sdk.tokenstorage import SQLiteAdapter
+    if not hasattr(storage_adapter, "_instance"):
+        filename = "storage.db"
+        ## TODO Hardcoded must be changed in the future
+        storage_adapter._instance = SQLiteAdapter(filename)
+    return storage_adapter._instance
+
+def get_auth_token():
+    auth_data = storage_adapter().get_token_data('auth.globus.org')
+    return auth_data['access_token']
 
 def set_verbosity(self, verbose):
     #grpc_logger.setLevel(logging.DEBUG if verbose else logging.INFO)

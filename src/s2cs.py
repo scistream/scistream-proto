@@ -1,18 +1,25 @@
 import sys
-## This adds the scistream-proto folder to the python path
-## everything needs to import taking that into account
 import fire
 import grpc
 import threading
+
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
-from s2ds import S2DS, Haproxy, Nginx
 from concurrent import futures
-from utils import request_decorator, set_verbosity
+from s2ds import S2DS
+#, Haproxy, Nginx
+from utils import request_decorator, set_verbosity, authenticated
+import utils
+from globus_sdk import ConfidentialAppAuthClient
 
 class S2CSException(Exception):
     pass
+
+def get_auth_client():
+    """Create a Globus Auth client from config info"""
+    client = ConfidentialAppAuthClient(CLIENT_ID, CLIENT_SECRET)
+    return client
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
@@ -24,6 +31,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
     @request_decorator
+    @authenticated
     def req(self, request: scistream_pb2.Request, context):
         self.resource_map[request.uid] = {
             "role": request.role,
@@ -33,7 +41,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             "prod_listeners": []
         }
         self.logger.debug(f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}")
-        self.s2ds= Nginx()
+        self.s2ds= S2DS()
         reply = self.s2ds.start(request.num_conn, self.listener_ip)
         self.resource_map[request.uid].update(reply)
 
@@ -46,6 +54,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return self.response
 
     @request_decorator
+    @authenticated
     def update(self, request, context):
         #improve validation
         listeners=request.remote_listeners
@@ -60,6 +69,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return response
 
     @request_decorator
+    @authenticated
     def release(self, request, context):
         self.release_request(request.uid)
         response = scistream_pb2.Response()
@@ -77,6 +87,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             self.release_request(i)
 
     @request_decorator
+    @authenticated
     def hello(self, request,context):
         ## Possible race condition here between REQ and HELLO
         entry = self.resource_map[request.uid]
@@ -90,6 +101,17 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
                 listeners = entry["listeners"])
         entry["hello_received"].set()
         return AppResponse
+
+    def validate_creds(self, token):
+        client = get_auth_client()
+        token_meta = client.oauth2_token_introspect(token)
+        ## Scopes should be tied to deployment scopes
+
+        print(token_meta)
+        if not token_meta.get('active'):
+            return False
+            #raise ForbiddenError()
+        return True
 
 def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
     try:
