@@ -11,15 +11,10 @@ from s2ds import S2DS
 #, Haproxy, Nginx
 from utils import request_decorator, set_verbosity, authenticated
 import utils
-from globus_sdk import ConfidentialAppAuthClient
+from globus_action_provider_tools.authentication import TokenChecker
 
 class S2CSException(Exception):
     pass
-
-def get_auth_client():
-    """Create a Globus Auth client from config info"""
-    client = ConfidentialAppAuthClient(CLIENT_ID, CLIENT_SECRET)
-    return client
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
@@ -86,9 +81,10 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         for i in uids:
             self.release_request(i)
 
-    @request_decorator
+
     @authenticated
-    def hello(self, request,context):
+    @request_decorator
+    def hello(self, request, context):
         ## Possible race condition here between REQ and HELLO
         entry = self.resource_map[request.uid]
         if request.role == "PROD":
@@ -102,16 +98,13 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         entry["hello_received"].set()
         return AppResponse
 
-    def validate_creds(self, token):
-        client = get_auth_client()
-        token_meta = client.oauth2_token_introspect(token)
-        ## Scopes should be tied to deployment scopes
-
-        print(token_meta)
-        if not token_meta.get('active'):
-            return False
-            #raise ForbiddenError()
-        return True
+    def validate_creds(self, access_token):
+        CLIENT_ID='c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
+        CLIENT_SECRET = 's90uZ0meGLyaOOquHqrYkUOPOCyfR1NUaZQM1bXtJl8='
+        scope_string = 'https://auth.globus.org/scopes/c42c0dac-0a52-408e-a04f-5d31bfe0aef8/scistream'
+        checker = TokenChecker(client_id=CLIENT_ID,client_secret=CLIENT_SECRET,expected_scopes=[scope_string])
+        auth_state=checker.check_token(access_token)
+        return len(auth_state.identities) > 0
 
 def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
     try:

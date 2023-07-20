@@ -8,7 +8,7 @@ from appcontroller import AppCtrl
 from appcontroller import IperfCtrl
 from concurrent import futures
 from globus_sdk import NativeAppAuthClient
-from globus_sdk import ConfidentialAppAuthClient
+from globus_sdk.scopes import ScopeBuilder
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
@@ -22,11 +22,12 @@ def cli():
     pass
 
 linkprompt = "Please authenticate with Globus here"
-
-    # TODO Create configuration subsystem instead of hardcoding CLIENT ID values
+def get_client():
+    return NativeAppAuthClient('4787c84e-9c55-4881-b941-cb6720cea11c')
+# TODO Create configuration subsystem instead of hardcoding CLIENT ID values
 
 @cli.command()
-def login(s2cs):
+def login():
     """
     Get globus credentials for the Scistream User Client.
 
@@ -43,8 +44,8 @@ def login(s2cs):
         click.echo("You are already logged in!")
         return
     auth_client = get_client()
-    auth_client.oauth2_start_flow(refresh_tokens=True)
-
+    StreamScopes = ScopeBuilder("c42c0dac-0a52-408e-a04f-5d31bfe0aef8",known_url_scopes=["scistream"])
+    auth_client.oauth2_start_flow(requested_scopes=[StreamScopes.scistream], refresh_tokens=True)
     click.echo("{0}:\n{1}\n{2}\n{1}\n".format(
         linkprompt,
         "-" * len(linkprompt),
@@ -54,12 +55,6 @@ def login(s2cs):
     auth_code = click.prompt("Enter the resulting Authorization Code here").strip()
     tkn=auth_client.oauth2_exchange_code_for_tokens(auth_code)
     adapter.store(tkn)
-
-def get_auth_client():
-    """Create a Globus Auth client from config info"""
-    client = ConfidentialAppAuthClient(CLIENT_ID, CLIENT_SECRET)
-    return client
-
 
 @cli.command()
 def logout():
@@ -78,47 +73,19 @@ def logout():
         adapter.remove_tokens_for_resource_server(rs)
     click.echo("Successfully logged out!")
 
-@cli.command()
-def print_tokens():
-    """CLI command to retrieve and print all tokens."""
-    # Initialize the SQLiteAdapter
-    adapter = utils.storage_adapter()
-    all_tokens = adapter.get_by_resource_server()
-    # Iterate over the tokens and print them
-    for resource_server, token_data in all_tokens.items():
-        click.echo(f"Resource server: {resource_server}")
-        click.echo(f"Token Data: {token_data}")  # Print an empty line for readability
-
-@cli.command()
-def inspect_tokens():
-    adapter = utils.storage_adapter()
-    all_tokens = adapter.get_by_resource_server()
-    native_client = get_client()
-    token_meta2 = native_client.oauth2_validate_token(all_tokens['auth.globus.org']['access_token'])
-    client = get_auth_client()
-    token_meta = client.oauth2_validate_token(all_tokens['auth.globus.org']['refresh_token'])
-    token_meta = client.oauth2_token_introspect(all_tokens['auth.globus.org']['refresh_token'])
-    print(token_meta)
 
 @cli.command()
 @click.argument('uid', type=str, required=True)
 @click.option('--producer-s2cs', default="localhost:5000")
 @click.option('--consumer-s2cs', default="localhost:6000")
-@click.option('--auth', is_flag=True)
-def release(auth, creds, uid, producer_s2cs, consumer_s2cs):
+@utils.authorize
+def release(uid, producer_s2cs, consumer_s2cs, metadata=None):
     for s2cs in [producer_s2cs, consumer_s2cs]:
         try:
             with grpc.insecure_channel(s2cs) as channel:
                 stub = scistream_pb2_grpc.ControlStub(channel)
                 msg = scistream_pb2.Release(uid=uid)
-                if auth:
-                    token = utils.get_auth_token()
-                    headers = (
-                        ('authorization', f'Bearer {token}'),
-                    )
-                    resp = stub.release(msg, metadata=headers)
-                else:
-                    resp = stub.release(msg)
+                resp = stub.release(msg, metadata=metadata)
                 print("Release completed")
         except Exception as e:
             print(f"Error during release: {e}")
@@ -137,9 +104,9 @@ def request(num_conn, rate, producer_s2cs, consumer_s2cs):
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
             cons_resp_future = executor.submit(client_request, cons_stub, uid, "CONS", num_conn, rate)
-            time.sleep(0.1)  # Possible race condition between REQ and HELLO
-            producer_future = executor.submit(AppCtrl, uid, "PROD", producer_s2cs)
-            consumer_future = executor.submit(AppCtrl, globus_auth, "CONS", consumer_s2cs)
+            time.sleep(0.5)  # Possible race condition between REQ and HELLO
+            producer_future = executor.submit(AppCtrl, uid, "PROD", producer_s2cs, utils.get_auth_token())
+            consumer_future = executor.submit(AppCtrl, uid, "CONS", consumer_s2cs, utils.get_auth_token())
 
             prod_resp = prod_resp_future.result()
             cons_resp = cons_resp_future.result()
@@ -166,14 +133,14 @@ def request1(num_conn, rate, s2cs):
         uid=str(uuid.uuid1())
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
-            time.sleep(0.2)  # Possible race condition between REQ and HELLO
-            producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs)
+            time.sleep(0.5)  # Possible race condition between REQ and HELLO
+            producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs, utils.get_auth_token())
             prod_resp = prod_resp_future.result()
             producer = producer_future.result()
 
         update(prod_stub, uid, prod_resp.prod_listeners)
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
-            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs)
+            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs, utils.get_auth_token())
             consumer = consumer_future.result()
             ## APPctrl communicates with Scistream
             ## Scistream tells it what port it should send the data to
@@ -198,19 +165,21 @@ def request2(num_conn, rate, s2cs, access_code):
             consumer = consumer_future.result()
             ## APPctrl communicates with Scistream
             ## Scistream tells it what port it should send the data to
-def client_request(stub, uid, role, num_conn, rate):
+@utils.authorize
+def client_request(stub, uid, role, num_conn, rate, metadata=None):
     try:
         request = scistream_pb2.Request(uid=uid, role=role, num_conn=num_conn, rate=rate)
-        response = stub.req(request)
+        response = stub.req(request, metadata=metadata)
         return response
     except Exception as e:
         print(f"Error during client_request: {e}")
         return None
 
-def update(stub, uid, remote_listeners):
+@utils.authorize
+def update(stub, uid, remote_listeners, metadata=None):
     try:
         update_request = scistream_pb2.UpdateTargets(uid=uid, remote_listeners=remote_listeners)
-        stub.update(update_request)
+        stub.update(update_request, metadata=metadata)
     except Exception as e:
         print(f"Error during update: {e}")
 

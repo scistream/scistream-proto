@@ -9,7 +9,7 @@ from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
 class AppCtrl():
-    def __init__(self, uid, role, s2cs):
+    def __init__(self, uid, role, s2cs, access_token):
         ## Maybe be a scistream notifier
         ## Actually mocking an app controller call here
         # TODO catch connection error
@@ -21,7 +21,13 @@ class AppCtrl():
         with grpc.insecure_channel(s2cs) as channel:
             s2cs = scistream_pb2_grpc.ControlStub(channel)
             request.role = role
-            self.response = s2cs.hello(request)
+            metadata = (
+                ('authorization', f'{access_token}'),
+            )
+            print("SENDING HELLO on app ctrl")
+            self.response = s2cs.hello(request, metadata=metadata)
+            print("Hello sent on app ctrl")
+
         self.start_app(role)
 
     def start_app(self, role):
