@@ -15,13 +15,19 @@ from globus_action_provider_tools.authentication import TokenChecker
 
 class S2CSException(Exception):
     pass
+#default_cid =
+'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
+#default_secret =
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
-    def __init__(self, listener_ip, verbose):
+    def __init__(self, listener_ip, verbose,
+            client_id=default_cid, client_secret=default_secret):
         self.response = None
         self.resource_map = {}
         self.listener_ip = listener_ip
+        self.client_id = client_id
+        self.client_secret = client_secret
         set_verbosity(self, verbose)
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
@@ -81,7 +87,6 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         for i in uids:
             self.release_request(i)
 
-
     @authenticated
     @request_decorator
     def hello(self, request, context):
@@ -98,15 +103,21 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         entry["hello_received"].set()
         return AppResponse
 
-    def validate_creds(self, access_token, client_id, client_secret, scope_string):
-        checker = TokenChecker(client_id=client_id,client_secret=client_secret,expected_scopes=[scope_string])
+    def validate_creds(self, access_token):
+        scope_string = f"https://auth.globus.org/scopes/{self.client_id}/scistream"
+        checker = TokenChecker(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            expected_scopes=[scope_string]
+            )
         auth_state=checker.check_token(access_token)
         return len(auth_state.identities) > 0
 
-def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
+def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False,
+        client_id=default_cid, client_secret=default_secret):
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        servicer = S2CS(listener_ip, verbose=(v or verbose))
+        servicer = S2CS(listener_ip, verbose=(v or verbose), client_id, client_secret)
         scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
         server.add_insecure_port(f'[::]:{port}')
         server.start()

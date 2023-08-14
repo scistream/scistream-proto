@@ -2,7 +2,6 @@ import click
 import grpc
 import uuid
 import time
-import logging
 import utils
 from appcontroller import AppCtrl
 from appcontroller import IperfCtrl
@@ -11,11 +10,6 @@ from globus_sdk import NativeAppAuthClient
 from globus_sdk.scopes import ScopeBuilder
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
-
-# Set up gRPC logging
-#logging.basicConfig(level=logging.DEBUG)
-#grpc_logger = logging.getLogger("grpc")
-#grpc_logger.setLevel(logging.DEBUG)
 
 @click.group()
 def cli():
@@ -27,7 +21,8 @@ def get_client():
 # TODO Create configuration subsystem instead of hardcoding CLIENT ID values
 
 @cli.command()
-def login():
+@click.option('--scope', default="c42c0dac-0a52-408e-a04f-5d31bfe0aef8")
+def login(scope):
     """
     Get globus credentials for the Scistream User Client.
 
@@ -44,7 +39,7 @@ def login():
         click.echo("You are already logged in!")
         return
     auth_client = get_client()
-    StreamScopes = ScopeBuilder("c42c0dac-0a52-408e-a04f-5d31bfe0aef8",known_url_scopes=["scistream"])
+    StreamScopes = ScopeBuilder(scope, known_url_scopes=["scistream"])
     auth_client.oauth2_start_flow(requested_scopes=[StreamScopes.scistream], refresh_tokens=True)
     click.echo("{0}:\n{1}\n{2}\n{1}\n".format(
         linkprompt,

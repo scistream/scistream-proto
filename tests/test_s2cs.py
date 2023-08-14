@@ -142,7 +142,7 @@ def test_hello_success(servicer):
     hello_request = Hello(uid='test_uid', prod_listeners=['127.0.0.1:7000'])
     response = servicer.hello(hello_request, context)
     assert response.message
-
+"""
 @pytest.mark.xfail
 def test_validation(servicer, context):
     meta = dict(context.invocation_metadata())
@@ -153,3 +153,4 @@ def test_validation(servicer, context):
     validate = servicer.validate_creds(auth_token, client_id, client_secret, scope_string)
     print(validate)
     assert validate
+"""

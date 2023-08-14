@@ -59,14 +59,8 @@ def authenticated(func):
         auth_token = metadata.get('authorization')
         if not auth_token:
             context.abort(StatusCode.UNAUTHENTICATED, 'Authentication token is missing')
-        #TODO define in configuration
-
-        # TODO Create configuration subsystem instead of hardcoding CLIENT ID values
-        client_id = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
-        scope_string = 'https://auth.globus.org/scopes/c42c0dac-0a52-408e-a04f-5d31bfe0aef8/scistream'
-
-        if not self.validate_creds(auth_token, client_id, client_secret, scope_string):
-            context.abort(StatusCode.UNAUTHENTICATED, f"Authentication token is invalid for scope {client_id}")
+        if not self.validate_creds(auth_token):
+            context.abort(StatusCode.UNAUTHENTICATED, f"Authentication token is invalid")
         return func(*args, **kwargs)
     return decorated_function
 
@@ -98,10 +92,12 @@ def get_access_token():
         _cache['token']=auth_data['access_token']
         #print("Stored in cache")
     else:
-        ## Raise exception?
         #print("Token not found")
         raise UnauthorizedError()
     return auth_data['access_token']
+
+def set_configs(client_id, client_secret):
+
 
 def set_verbosity(self, verbose):
     #grpc_logger.setLevel(logging.DEBUG if verbose else logging.INFO)
