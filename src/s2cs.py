@@ -98,11 +98,8 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         entry["hello_received"].set()
         return AppResponse
 
-    def validate_creds(self, access_token):
-        CLIENT_ID='c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
-        CLIENT_SECRET = 's90uZ0meGLyaOOquHqrYkUOPOCyfR1NUaZQM1bXtJl8='
-        scope_string = 'https://auth.globus.org/scopes/c42c0dac-0a52-408e-a04f-5d31bfe0aef8/scistream'
-        checker = TokenChecker(client_id=CLIENT_ID,client_secret=CLIENT_SECRET,expected_scopes=[scope_string])
+    def validate_creds(self, access_token, client_id, client_secret, scope_string):
+        checker = TokenChecker(client_id=client_id,client_secret=client_secret,expected_scopes=[scope_string])
         auth_state=checker.check_token(access_token)
         return len(auth_state.identities) > 0
 

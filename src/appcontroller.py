@@ -3,8 +3,11 @@ import click
 import grpc
 import zmq
 import subprocess
+import os
+import signal
 import time
 import socket
+import sys
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
@@ -24,14 +27,34 @@ class AppCtrl():
             metadata = (
                 ('authorization', f'{access_token}'),
             )
-            print("SENDING HELLO on app ctrl")
-            self.response = s2cs.hello(request, metadata=metadata)
-            print("Hello sent on app ctrl")
+            print("AppCtrl: SENDING HELLO")
+            try:
+                self.response = s2cs.hello(request, metadata=metadata)
+            except grpc.RpcError as e:
+
+                if e.code() == grpc.StatusCode.UNAUTHENTICATED:
+                    sys.exit(f"AppCtrl: Authentication error for server scope, please obtain new credentials: {e.details()}")
+                else:
+                    sys.exit(f"AppCtrl: Another GRPC error occurred: {e.details()}")
+            print("AppCtrl: Hello sent")
 
         self.start_app(role)
 
+    def kill_python_processes_on_port(self, port):
+        try:
+            result = subprocess.check_output(f"lsof -i :{port} -n | grep LISTEN | grep python | awk '{{print $2}}'", shell=True)
+            pid = int(result.decode("utf-8").strip())
+            os.kill(pid, signal.SIGKILL)
+        except ValueError:
+            print(f"No python process listening on port {port}")
+        except subprocess.CalledProcessError:
+            print(f"No python process listening on port {port}")
+        except ProcessLookupError:
+            print(f"Process with PID {pid} not found")
+
     def start_app(self, role):
         if role == "PROD":
+            self.kill_python_processes_on_port("7000")
             producer_process = subprocess.Popen(["python", __file__, "run-producer", "7000"])
         else:
             ## need some type of communication with S2CS to identify what port would the communication work

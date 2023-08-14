@@ -57,17 +57,25 @@ def authenticated(func):
         self = args[0]
         metadata = dict(context.invocation_metadata())
         auth_token = metadata.get('authorization')
-        print(auth_token)
-        if not auth_token or not self.validate_creds(auth_token):
-            context.abort(StatusCode.UNAUTHENTICATED, 'Authentication token is missing or invalid')
+        if not auth_token:
+            context.abort(StatusCode.UNAUTHENTICATED, 'Authentication token is missing')
+        #TODO define in configuration
+
+        # TODO Create configuration subsystem instead of hardcoding CLIENT ID values
+        client_id = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
+        scope_string = 'https://auth.globus.org/scopes/c42c0dac-0a52-408e-a04f-5d31bfe0aef8/scistream'
+
+        if not self.validate_creds(auth_token, client_id, client_secret, scope_string):
+            context.abort(StatusCode.UNAUTHENTICATED, f"Authentication token is invalid for scope {client_id}")
         return func(*args, **kwargs)
     return decorated_function
 
 def authorize(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        #print("started client authorization")
         kwargs['metadata'] = (
-            ('authorization', f'{get_auth_token()}'),
+            ('authorization', f'{get_access_token()}'),
         )
         return func(*args, **kwargs)
     return wrapper
@@ -80,13 +88,19 @@ def storage_adapter():
         storage_adapter._instance = SQLiteAdapter(filename)
     return storage_adapter._instance
 _cache={}
-def get_auth_token():
+
+def get_access_token():
     if 'token' in _cache:
-        print("retrieving from CACHE")
+        #print("retrieving from CACHE")
         return _cache['token']
     auth_data = storage_adapter().get_token_data('c42c0dac-0a52-408e-a04f-5d31bfe0aef8')
-    _cache['token']=auth_data['access_token']
-    print("STORED in CACHE")
+    if auth_data:
+        _cache['token']=auth_data['access_token']
+        #print("Stored in cache")
+    else:
+        ## Raise exception?
+        #print("Token not found")
+        raise UnauthorizedError()
     return auth_data['access_token']
 
 def set_verbosity(self, verbose):

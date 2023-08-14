@@ -62,16 +62,16 @@ def test_update_success(servicer):
         "listeners": ["127.0.0.1:5001"]
     }
     update_request = UpdateTargets(uid='test_uid', remote_listeners=['127.0.0.1:47000'])
-    response = servicer.update(update_request, None)
+    response = servicer.update(update_request, context)
     assert response.listeners
 
-#Expected to fail
+#Expected to fail but passed, something is wrong
 @pytest.mark.xfail
 @pytest.mark.timeout(5)
 @mock.patch.object(S2CS, "validate_creds", return_value=True)
-def test_req_no_hello(servicer):
+def test_req_no_hello(servicer, context):
     request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
-    response = servicer.req(request, None)
+    response = servicer.req(request, context)
     assert response.listeners
 
 @pytest.mark.timeout(5)
@@ -105,9 +105,9 @@ def test_req_and_hello(servicer):
     hello_request = Hello(uid='test_uid', role='PROD', prod_listeners=['10.0.0.1:5000'])
     req_request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
     with futures.ThreadPoolExecutor(max_workers=2) as executor:
-        req_future = executor.submit(lambda: servicer.req(req_request, None))
+        req_future = executor.submit(lambda: servicer.req(req_request, context))
         time.sleep(0.5)
-        hello_future = executor.submit(lambda: servicer.hello(hello_request, None))
+        hello_future = executor.submit(lambda: servicer.hello(hello_request, context))
         hello_response = hello_future.result(timeout=2)
         req_response = req_future.result(timeout=2)
     assert servicer.resource_map['test_uid']
@@ -118,13 +118,13 @@ def test_full_request(servicer):
     hello_request = Hello(uid='test_uid', role='PROD', prod_listeners=['10.0.0.1:5000'])
     req_request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
     with futures.ThreadPoolExecutor(max_workers=2) as executor:
-        req_future = executor.submit(lambda: servicer.req(req_request, None))
+        req_future = executor.submit(lambda: servicer.req(req_request, context))
         time.sleep(0.5)
-        hello_future = executor.submit(lambda: servicer.hello(hello_request, None))
+        hello_future = executor.submit(lambda: servicer.hello(hello_request, context))
         hello_response = hello_future.result(timeout=2)
         req_response = req_future.result(timeout=2)
     update_request = UpdateTargets(uid='test_uid', role='PROD', remote_listeners=req_response.prod_listeners)
-    servicer.update( update_request, None )
+    servicer.update( update_request, context )
     print(servicer.resource_map)
     assert servicer.resource_map['test_uid']
 
@@ -140,12 +140,16 @@ def test_hello_success(servicer):
         "listeners": ["127.0.0.1:5001"]
     }
     hello_request = Hello(uid='test_uid', prod_listeners=['127.0.0.1:7000'])
-    response = servicer.hello(hello_request, None)
+    response = servicer.hello(hello_request, context)
     assert response.message
 
 @pytest.mark.xfail
 def test_validation(servicer, context):
     meta = dict(context.invocation_metadata())
     auth_token = meta.get('authorization')
-    validate = servicer.validate_creds(auth_token)
+    client_id = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
+    client_secret = 's90uZ0meGLyaOOquHqrYkUOPOCyfR1NUaZQM1bXtJl8='
+    scope_string = 'https://auth.globus.org/scopes/c42c0dac-0a52-408e-a04f-5d31bfe0aef8/scistream'
+    validate = servicer.validate_creds(auth_token, client_id, client_secret, scope_string)
+    print(validate)
     assert validate

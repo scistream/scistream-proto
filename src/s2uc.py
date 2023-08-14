@@ -66,7 +66,7 @@ def logout():
     """
     adapter = utils.storage_adapter()
     native_client = get_client()
-    for rs, tokendata in adapter.remove_tokens_for_resource_server().items():
+    for rs, tokendata in adapter.get_by_resource_server().items():
         for tok_key in ("access_token", "refresh_token"):
             token = tokendata[tok_key]
             native_client.oauth2_revoke_token(token)
@@ -105,8 +105,8 @@ def request(num_conn, rate, producer_s2cs, consumer_s2cs):
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
             cons_resp_future = executor.submit(client_request, cons_stub, uid, "CONS", num_conn, rate)
             time.sleep(0.5)  # Possible race condition between REQ and HELLO
-            producer_future = executor.submit(AppCtrl, uid, "PROD", producer_s2cs, utils.get_auth_token())
-            consumer_future = executor.submit(AppCtrl, uid, "CONS", consumer_s2cs, utils.get_auth_token())
+            producer_future = executor.submit(AppCtrl, uid, "PROD", producer_s2cs, utils.get_access_token())
+            consumer_future = executor.submit(AppCtrl, uid, "CONS", consumer_s2cs, utils.get_access_token())
 
             prod_resp = prod_resp_future.result()
             cons_resp = cons_resp_future.result()
@@ -132,18 +132,21 @@ def request1(num_conn, rate, s2cs):
         prod_stub = scistream_pb2_grpc.ControlStub(channel1)
         uid=str(uuid.uuid1())
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
+
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
-            time.sleep(0.5)  # Possible race condition between REQ and HELLO
-            producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs, utils.get_auth_token())
+            time.sleep(0.1)  # Possible race condition between REQ and HELLO
+            producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs, utils.get_access_token())
             prod_resp = prod_resp_future.result()
             producer = producer_future.result()
 
+
         update(prod_stub, uid, prod_resp.prod_listeners)
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
-            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs, utils.get_auth_token())
+            consumer_future = executor.submit(AppCtrl, uid, "CONS", s2cs, utils.get_access_token())
             consumer = consumer_future.result()
             ## APPctrl communicates with Scistream
             ## Scistream tells it what port it should send the data to
+        print(uid)
 
 @cli.command()
 @click.option('--num_conn', type=int, default=5)
@@ -168,12 +171,15 @@ def request2(num_conn, rate, s2cs, access_code):
 @utils.authorize
 def client_request(stub, uid, role, num_conn, rate, metadata=None):
     try:
+        print("started client request")
         request = scistream_pb2.Request(uid=uid, role=role, num_conn=num_conn, rate=rate)
         response = stub.req(request, metadata=metadata)
         return response
-    except Exception as e:
-        print(f"Error during client_request: {e}")
-        return None
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.UNAUTHENTICATED:
+            click.ClickException(f"Authentication error for server scope, please obtain new credentials: {e.details()}")
+        else:
+            click.ClickException(f"Another GRPC error occurred: {e.details()}")
 
 @utils.authorize
 def update(stub, uid, remote_listeners, metadata=None):

@@ -54,14 +54,44 @@ tests/test_s2cs.py .x....                                                       
 
 ## Tutorial
 
+### Authentication
+
+We integrated with globus platform for the purpose of authentication.
+
+If your token expired you might want to start by logging out.
+~~~
+$ python src/s2uc.py logout
+~~~
+
+After that let's log in:
+
+~~~
+$ python src/s2uc.py login
+~~~
+
+You will see a URL. You need to open the url provided in a web browser, log in with the proper credentials, then copy and paste the authorization code into the cli prompt.
+
+~~~
+(scistream-proto-py3.9) bash-3.2$ python src/s2uc.py login
+Please authenticate with Globus here:
+------------------------------------
+https://auth.globus.org/v2/oauth2/authorize?client_id=4787c84e-9c55-a11c&redirect_uri=https%3A%2F%2Fauth.globus.org=login
+------------------------------------
+
+Enter the resulting Authorization Code here:
+~~~
+
+After logging in you can move to the next tutorial step.
+
+### Running scistream
+
 To understand the behavior of the code let's simulate the environment by opening 3 terminals, 1 for the s2cs Producer, 1 for s2cs Consumer, and one for the client terminal.
 
 To run this you will need to open multiple terminals:
 
 ~~~
 python src/s2cs.py start --port=5000 --listener-ip=127.0.0.1
-python src/s2cs.py start --port=6000 --listener-ip=127.0.0.1
-python src/s2uc.py request
+python src/s2uc.py request1
 ~~~
 
 Several things will happen in the background to learn more please review the code. The output of the client should look like this:
