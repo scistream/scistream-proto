@@ -31,7 +31,6 @@ class AppCtrl():
             try:
                 self.response = s2cs.hello(request, metadata=metadata)
             except grpc.RpcError as e:
-
                 if e.code() == grpc.StatusCode.UNAUTHENTICATED:
                     sys.exit(f"AppCtrl: Authentication error for server scope, please obtain new credentials: {e.details()}")
                 else:

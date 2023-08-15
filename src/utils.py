@@ -96,9 +96,6 @@ def get_access_token():
         raise UnauthorizedError()
     return auth_data['access_token']
 
-def set_configs(client_id, client_secret):
-
-
 def set_verbosity(self, verbose):
     #grpc_logger.setLevel(logging.DEBUG if verbose else logging.INFO)
     self.logger = logging.getLogger(__name__)
