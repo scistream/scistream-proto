@@ -124,6 +124,11 @@ python src/s2cs.py start --port=5000 --listener-ip=127.0.0.1 --verbose
 ~~~
 
 This should output more info, if you continue facing issues please create an issue on github.
+
+## FAQ
+
+Make sure that you start the poetry environment with the correct python version
+
 ## Specification
 
 ### Service

@@ -138,7 +138,11 @@ def check_if_port_in_use(port):
 @click.argument('port', type=str, default="7000")
 def iperf_server(port):
     if not check_if_port_in_use(port):
-        subprocess.Popen(["iperf", "-s", "-p", str(port)])
+        with open('server_output.txt', 'w') as f:
+            subprocess.Popen(
+                ["iperf", "-s", "-p", str(port)],
+                stdout=f,
+                stderr=subprocess.STDOUT)    
         print(f"Started iperf server on port {port}")
     else:
         print(f"Port {port} is already in use")
@@ -149,7 +153,11 @@ def iperf_client(target):
     try:
         server_ip, port = target.split(":")
         print("STARTING IPERF CLIENT with port:", str(port))
-        iperf_process = subprocess.Popen(['iperf', '-t', '10', '-c', server_ip, '-p', str(port)])
+        with open('client_output.txt', 'w') as f:
+            iperf_process = subprocess.Popen(
+                ['iperf', '-t', '10', '-c', server_ip, '-p', str(port)],
+                stdout = f,
+                stderr = subprocess.STDOUT)
         print("iperf client started with pid:", iperf_process.pid)
     except Exception as e:
         print("Error starting iperf client:", str(e))
