@@ -83,6 +83,8 @@ def test_req_timeout(servicer, context):
                 response = servicer.req(request, context)
                 assert "Hello not received within the timeout period" in str(excinfo.value)
 
+## Write a test for the race condition when there's no request before the hello.
+
 @mock.patch.object(S2CS, "validate_creds", return_value=True)
 @pytest.mark.timeout(5)
 def test_release_success(servicer, context):

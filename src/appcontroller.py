@@ -142,7 +142,7 @@ def iperf_server(port):
             subprocess.Popen(
                 ["iperf", "-s", "-p", str(port)],
                 stdout=f,
-                stderr=subprocess.STDOUT)    
+                stderr=subprocess.STDOUT)
         print(f"Started iperf server on port {port}")
     else:
         print(f"Port {port} is already in use")
@@ -161,6 +161,15 @@ def iperf_client(target):
         print("iperf client started with pid:", iperf_process.pid)
     except Exception as e:
         print("Error starting iperf client:", str(e))
+
+@click.command()
+@click.argument('target', type=str, help='User ID')
+@click.argument('role', type=str, help='Application role')
+@click.argument('s2cs', type=str, default='localhost:5000', help='S2CS host e.g: localhost:5000')
+@click.argument('s2cs', type=str, help='Access token for authentication')
+def create_appctrl(uid, role, s2cs, access_token):
+    app_ctrl_instance = AppCtrl(uid, role, s2cs, access_token)
+    click.echo(f"Created AppCtrl instance")
 
 if __name__ == '__main__':
     cli()

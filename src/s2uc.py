@@ -88,8 +88,8 @@ def release(uid, producer_s2cs, consumer_s2cs, metadata=None):
 @cli.command()
 @click.option('--num_conn', type=int, default=5)
 @click.option('--rate', type=int, default=10000)
-@click.option('--producer-s2cs', default="localhost:5000")
-@click.option('--consumer-s2cs', default="localhost:6000")
+@click.option(['--producer-s2cs', '-p'], default="localhost:5000")
+@click.option(['--consumer-s2cs', '-c'], default="localhost:6000")
 def request(num_conn, rate, producer_s2cs, consumer_s2cs):
     with grpc.insecure_channel(producer_s2cs) as channel1, \
       grpc.insecure_channel(consumer_s2cs) as channel2:
@@ -121,6 +121,37 @@ def request(num_conn, rate, producer_s2cs, consumer_s2cs):
 @cli.command()
 @click.option('--num_conn', type=int, default=5)
 @click.option('--rate', type=int, default=10000)
+@click.option(['--producer-s2cs', '-p'], default="localhost:5000")
+@click.option(['--consumer-s2cs', '-c'], default="localhost:6000")
+def request3(num_conn, rate, producer_s2cs, consumer_s2cs):
+    with grpc.insecure_channel(producer_s2cs) as channel1, \
+      grpc.insecure_channel(consumer_s2cs) as channel2:
+        prod_stub = scistream_pb2_grpc.ControlStub(channel1)
+        cons_stub = scistream_pb2_grpc.ControlStub(channel2)
+        uid=str(uuid.uuid1())
+        with futures.ThreadPoolExecutor(max_workers=4) as executor:
+            prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
+            cons_resp_future = executor.submit(client_request, cons_stub, uid, "CONS", num_conn, rate)
+            click.echo("uid; role; s2cs; access_token")
+            click.echo(f"{uid};PROD;{producer_s2cs};{utils.get_access_token()}")
+            click.echo(f"{uid};CONS;{consumer_s2cs};{utils.get_access_token()}")
+            click.echo("waiting for hello message")
+            prod_resp = prod_resp_future.result()
+            cons_resp = cons_resp_future.result()
+
+        print(prod_resp) ## Should this be printed?
+        prod_lstn = prod_resp.listeners
+        prod_app_lstn = prod_resp.prod_listeners
+        cons_lstn = cons_resp.listeners
+
+        print("Sending updated connection map information...")
+        print(uid)
+        update(prod_stub, uid, prod_resp.prod_listeners)
+        update(cons_stub, uid, prod_resp.listeners)
+
+@cli.command()
+@click.option('--num_conn', type=int, default=5)
+@click.option('--rate', type=int, default=10000)
 @click.option('--s2cs', default="localhost:5000")
 def request1(num_conn, rate, s2cs):
     with grpc.insecure_channel(s2cs) as channel1:
@@ -131,6 +162,7 @@ def request1(num_conn, rate, s2cs):
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
             time.sleep(0.1)  # Possible race condition between REQ and HELLO
             producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs, utils.get_access_token())
+            ##Maybe run this manually or make an SSH call to run this remotely
             prod_resp = prod_resp_future.result()
             producer = producer_future.result()
 
