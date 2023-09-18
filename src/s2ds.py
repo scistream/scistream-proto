@@ -6,9 +6,17 @@ from pathlib import Path
 class S2DSException(Exception):
     pass
 
+def create_instance(class_name):
+    try:
+        instance = eval(f"{class_name}()")
+        return instance
+    except NameError:
+         print(f"Class {class_name} is not defined.")
+return create_instance(type)
+
 class S2DS():
     ## TODO Cleanup
-    def __init__(self):
+    def __init__(self, type):
         self.logger = logging.getLogger(__name__)
 
     def start(self, num_conn, listener_ip):
@@ -58,7 +66,8 @@ class Haproxy():
         pass
 
     def start(self, num_conn, listener_ip):
-        entry={"s2ds_proc":[], "listeners":["127.0.0.1:5001"]}
+        ##STOP hardcoding port 5001
+        entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:5001"]}
         return entry
 
     def update_listeners(self, listeners, s2ds_proc):
@@ -86,15 +95,16 @@ class Haproxy():
             'image': 'haproxy:latest',
             'name': 'myhaproxy',
             'detach': True,
-            'ports': {f'{local_port}/tcp':local_port},
             'volumes': {f'{Path(__file__).parent}/haproxy.cfg': {'bind': '/usr/local/etc/haproxy/haproxy.cfg', 'mode': 'ro'}},
-            'network': 'mynetwork',
+            'network_mode': 'host'
         }
         # Start the HAProxy container
         name= "myhaproxy"
         try:
             container = client.containers.get(name)
             print(f'Container {name} already exists')
+            container.stop()
+            container.remove()
         except docker.errors.NotFound:
             print(f'Creating container {name}')
             container = client.containers.run(**container_config)
