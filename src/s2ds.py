@@ -12,11 +12,11 @@ def create_instance(class_name):
         return instance
     except NameError:
          print(f"Class {class_name} is not defined.")
-return create_instance(type)
+    return create_instance(type)
 
 class S2DS():
     ## TODO Cleanup
-    def __init__(self, type):
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
 
     def start(self, num_conn, listener_ip):
@@ -72,9 +72,9 @@ class Haproxy():
 
     def update_listeners(self, listeners, s2ds_proc):
         remote_host, remote_port = listeners[0].split(":")
-        #remote_host = 192.168.0.26
-        #remote_port = 7000
-        local_port=5001
+        remote_host = "192.168.1.6"
+        remote_port = "7000"
+        local_port = "7000"
         vars = {
             'local_port': local_port,
             'remote_host': remote_host,

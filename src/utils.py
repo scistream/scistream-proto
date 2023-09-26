@@ -85,14 +85,12 @@ _cache={}
 
 def get_access_token():
     if 'token' in _cache:
-        #print("retrieving from CACHE")
         return _cache['token']
-    auth_data = storage_adapter().get_token_data('c42c0dac-0a52-408e-a04f-5d31bfe0aef8')
+    tokens = storage_adapter().get_by_resource_server()
+    scope, auth_data = next( iter( tokens.items() ) )
     if auth_data:
         _cache['token']=auth_data['access_token']
-        #print("Stored in cache")
     else:
-        #print("Token not found")
         raise UnauthorizedError()
     return auth_data['access_token']
 

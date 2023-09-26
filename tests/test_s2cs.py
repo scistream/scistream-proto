@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent/ "src"))
 
 from concurrent import futures
 from proto.scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
-from s2cs import S2CS, S2CSException, S2DS
+from s2cs import S2CS, S2CSException
+from s2ds import S2DS
 
 class MockS2DS(S2DS):
     def __init__(self, *args, **kwargs):
