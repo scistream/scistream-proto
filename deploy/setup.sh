@@ -28,3 +28,4 @@ rm .python-version
 # Setup Poetry and run tests
 poetry install
 poetry shell
+sudo usermod -aG docker ubuntu

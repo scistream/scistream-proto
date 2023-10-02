@@ -67,16 +67,14 @@ class Haproxy():
 
     def start(self, num_conn, listener_ip):
         ##STOP hardcoding port 5001
-        entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:5001"]}
+        self.local_port= "5001"
+        entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:{self.local_port}"]}
         return entry
 
     def update_listeners(self, listeners, s2ds_proc):
         remote_host, remote_port = listeners[0].split(":")
-        remote_host = "192.168.1.6"
-        remote_port = "7000"
-        local_port = "7000"
         vars = {
-            'local_port': local_port,
+            'local_port': self.local_port,
             'remote_host': remote_host,
             'remote_port': remote_port,
         }
@@ -84,7 +82,8 @@ class Haproxy():
         env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
         template = env.get_template(f'haproxy.cfg.j2')
         # Render the template to create the HAProxy configuration file
-        with open('haproxy.cfg', 'w') as f:
+        #renders file to a slightly different location
+        with open(f'{Path(__file__).parent}/haproxy.cfg', 'w') as f:
             f.write(template.render(vars))
 
         # Connect to Docker
@@ -105,6 +104,9 @@ class Haproxy():
             print(f'Container {name} already exists')
             container.stop()
             container.remove()
+            print(f'Creating container {name}')
+            container = client.containers.run(**container_config)
+
         except docker.errors.NotFound:
             print(f'Creating container {name}')
             container = client.containers.run(**container_config)

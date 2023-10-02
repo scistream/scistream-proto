@@ -69,7 +69,6 @@ class IperfCtrl(AppCtrl):
     def start_app(self, role):
         if role == "PROD":
             producer_process = subprocess.Popen(["python", __file__, "iperf-server", "7000"])
-            print(self.response.listeners[0])
         else:
             ## need some type of communication with S2CS to identify what port would the communication work
             consumer_process = subprocess.Popen(
@@ -140,7 +139,7 @@ def check_if_port_in_use(port):
 @click.argument('port', type=str, default="7000")
 def iperf_server(port):
     if not check_if_port_in_use(port):
-        cmds = ["/usr/bin/iperf", "-s", "-p", str(port)]
+        cmds = ["iperf3", "-s", "-p", str(port)]
         with open('server_output.txt', 'w') as f:
             subprocess.Popen(
                 cmds,
@@ -157,7 +156,8 @@ def iperf_client(target):
     try:
         server_ip, port = target.split(":")
         print("STARTING IPERF CLIENT with port:", str(port))
-        cmds = ['/usr/bin/iperf', '-t', '10', '-c', server_ip, '-p', str(port)]
+        time.sleep(10)
+        cmds = ['iperf3', '-t', '10', '-c', server_ip, '-p', str(port), "-R"]
         print(" ".join(cmds))
         with open('client_output.txt', 'w') as f:
             iperf_process = subprocess.Popen(
@@ -168,7 +168,7 @@ def iperf_client(target):
     except Exception as e:
         print("Error starting iperf client:", str(e))
 
-@click.command()
+@cli.command()
 @click.argument('uid', type=str)
 @click.argument('s2cs', type=str, default='localhost:5000')
 @click.argument('access_token', type=str)

@@ -15,6 +15,7 @@ from globus_action_provider_tools.authentication import TokenChecker
 class S2CSException(Exception):
     pass
 default_cid = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
+default_secret = ""
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
@@ -99,6 +100,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             print("target ports")
             print(entry["prod_listeners"])
             print("DEBUG HERE")
+            print(self.response)
         else:
             self.response = scistream_pb2.Response(listeners = entry["listeners"])
             print(entry["listeners"])

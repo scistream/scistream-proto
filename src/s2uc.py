@@ -160,6 +160,7 @@ def request1(num_conn, rate, s2cs):
         uid=str(uuid.uuid1())
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
 
+            click.echo(f"{uid} {s2cs} {utils.get_access_token()} PROD")
             prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
             #time.sleep(0.1)  # Possible race condition between REQ and HELLO
             #producer_future = executor.submit(AppCtrl, uid, "PROD", s2cs, utils.get_access_token())
