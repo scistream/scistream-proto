@@ -16,7 +16,7 @@ from globus_action_provider_tools.authentication import TokenChecker
 class S2CSException(Exception):
     pass
 default_cid = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
-default_secret =
+default_secret = ""
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
@@ -111,10 +111,13 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         auth_state=checker.check_token(access_token)
         return len(auth_state.identities) > 0
 
-def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False, client_id=default_cid, client_secret=default_secret):
+def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False, client_id=default_cid, client_secret=""):
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        servicer = S2CS(listener_ip, (v or verbose), client_id, client_secret)
+        servicer = S2CS(listener_ip=listener_ip,
+                        verbose = (v or verbose),
+                        client_id = client_id,
+                        client_secret= client_secret)
         scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
         server.add_insecure_port(f'[::]:{port}')
         server.start()

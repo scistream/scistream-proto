@@ -32,7 +32,7 @@ def request_decorator(func):
             if self.resource_map.get(request.uid):
                 raise ValidationException("Entry already found for uid")
         elif request.uid not in self.resource_map:
-                raise ValidationException(f"{func.__name__} validation failed, entry not found for uid '{request.uid}'")
+                raise ValidationException(f"{func.__name__} request invalid, entry not found for uid '{request.uid}'")
         try:
             self.logger.debug(f"{func.__name__} started, with request {request}")
             result = func(*args, **kwargs)
@@ -55,6 +55,9 @@ def authenticated(func):
     def decorated_function(*args, **kwargs):
         context = args[2]
         self = args[0]
+        ## if client _secret has not been defined then we turn off credential validation
+        if self.client_secret == "":
+            return func(*args, **kwargs)
         metadata = dict(context.invocation_metadata())
         auth_token = metadata.get('authorization')
         if not auth_token:

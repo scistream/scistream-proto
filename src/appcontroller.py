@@ -19,6 +19,8 @@ class AppCtrl():
         request = scistream_pb2.Hello(
             uid=uid
         )
+        MAX_RETRIES = 5  # Define a constant for the maximum number of retries
+        retry_count = 0
         if role == "PROD":
             request.prod_listeners.extend(['127.0.0.1:7000', '127.0.0.1:17000', '127.0.0.1:27000', '127.0.0.1:37000', '127.0.0.1:47000'])
         with grpc.insecure_channel(s2cs) as channel:
@@ -28,15 +30,20 @@ class AppCtrl():
                 ('authorization', f'{access_token}'),
             )
             print("AppCtrl: SENDING HELLO")
-            try:
-                self.response = s2cs.hello(request, metadata=metadata)
-            except grpc.RpcError as e:
-                if e.code() == grpc.StatusCode.UNAUTHENTICATED:
-                    sys.exit(f"AppCtrl: Authentication error for server scope, please obtain new credentials: {e.details()}")
-                else:
-                    sys.exit(f"AppCtrl: Another GRPC error occurred: {e.details()}")
-            print("AppCtrl: Hello sent")
-
+            while retry_count < MAX_RETRIES:
+                try:
+                    self.response = s2cs.hello(request, metadata=metadata)
+                    print("AppCtrl: Hello sent")
+                    break ## Exit the retry loop
+                except grpc.RpcError as e:
+                    if e.code() == grpc.StatusCode.UNAUTHENTICATED:
+                        sys.exit(f"AppCtrl: Authentication error for server scope, please obtain new credentials: {e.details()}")
+                    else:
+                        print(f"AppCtrl WARNING: GRPC error occurred: {e.details()}")
+                        retry_count += 1
+                time.sleep(0.1)
+            else:
+                sys.exit(f"AppCtrl: Failed after {MAX_RETRIES} attempts.")
         self.start_app(role)
 
     def kill_python_processes_on_port(self, port):
