@@ -1,35 +1,43 @@
 import sys
-## This adds the scistream-proto folder to the python path
-## everything needs to import taking that into account
 import fire
 import grpc
 import threading
+
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
-from s2ds import S2DS
 from concurrent import futures
-from utils import request_decorator, set_verbosity
+from s2ds import S2DS
+#, Haproxy, Nginx
+from utils import request_decorator, set_verbosity, authenticated
+import utils
+from globus_action_provider_tools.authentication import TokenChecker
 
 class S2CSException(Exception):
     pass
+default_cid = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
+default_secret = ""
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
-    def __init__(self, listener_ip, verbose):
+    def __init__(self, listener_ip, verbose, client_id=default_cid, client_secret=default_secret):
         self.response = None
         self.resource_map = {}
         self.listener_ip = listener_ip
+        self.client_id = client_id
+        self.client_secret = client_secret
         set_verbosity(self, verbose)
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
     @request_decorator
+    @authenticated
     def req(self, request: scistream_pb2.Request, context):
         self.resource_map[request.uid] = {
             "role": request.role,
             "num_conn": request.num_conn,
             "rate": request.rate,
-            "hello_received": threading.Event()
+            "hello_received": threading.Event(),
+            "prod_listeners": []
         }
         self.logger.debug(f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}")
         self.s2ds= S2DS()
@@ -45,11 +53,12 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return self.response
 
     @request_decorator
+    @authenticated
     def update(self, request, context):
         #improve validation
         listeners=request.remote_listeners
         entry = self.resource_map[request.uid]
-        if (entry["role"] == "PROD"):
+        if (request.role == "PROD"):
             listeners = [ listeners[ i % len(listeners) ] for i in range(entry["num_conn"]) ]
         else:
             entry["prods2cs_listeners"] = listeners
@@ -59,6 +68,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return response
 
     @request_decorator
+    @authenticated
     def release(self, request, context):
         self.release_request(request.uid)
         response = scistream_pb2.Response()
@@ -70,32 +80,54 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.s2ds.release(removed_item)
         self.logger.debug(f"Removed key: '{uid}' with entry: {removed_item}")
 
+    def release_all(self):
+        uids = [i for i in self.resource_map]
+        for i in uids:
+            self.release_request(i)
+
+    @authenticated
     @request_decorator
-    def hello(self, request,context):
+    def hello(self, request, context):
         ## Possible race condition here between REQ and HELLO
         entry = self.resource_map[request.uid]
-        if entry["role"] == "PROD":
+        if request.role == "PROD":
             entry["prod_listeners"] = request.prod_listeners
-            self.response = scistream_pb2.Response(listeners = entry["listeners"], prod_listeners = request.prod_listeners)
+            self.response = scistream_pb2.Response(listeners = entry["listeners"], prod_listeners = entry["prod_listeners"])
             AppResponse = scistream_pb2.AppResponse(message="Sending Prod listeners...")
         else:
             self.response = scistream_pb2.Response(listeners = entry["listeners"])
-            AppResponse = scistream_pb2.AppResponse(message="Sending listeners...")
+            AppResponse = scistream_pb2.AppResponse(message="Sending listeners...",
+                listeners = entry["listeners"])
         entry["hello_received"].set()
         return AppResponse
 
-def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    servicer = S2CS(listener_ip, verbose=(v or verbose))
-    scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
-    server.add_insecure_port(f'[::]:{port}')
-    server.start()
-    print(f"Server started on {listener_ip}:{port}")
-    server.wait_for_termination()
+    def validate_creds(self, access_token):
+        scope_string = f"https://auth.globus.org/scopes/{self.client_id}/scistream"
+        checker = TokenChecker(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            expected_scopes=[scope_string]
+            )
+        auth_state=checker.check_token(access_token)
+        return len(auth_state.identities) > 0
 
-if __name__ == '__main__':
+def start(listener_ip='0.0.0.0', port=5000, v=False, verbose=False, client_id=default_cid, client_secret=""):
     try:
-        fire.Fire(start)
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        servicer = S2CS(listener_ip=listener_ip,
+                        verbose = (v or verbose),
+                        client_id = client_id,
+                        client_secret= client_secret)
+        scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
+        server.add_insecure_port(f'[::]:{port}')
+        server.start()
+        print(f"Server started on {listener_ip}:{port}")
+        server.wait_for_termination()
     except KeyboardInterrupt:
+        servicer.release_all()
         print("\nTerminating server")
         sys.exit(0)
+
+
+if __name__ == '__main__':
+        fire.Fire(start)

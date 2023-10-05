@@ -1,0 +1,10 @@
+worker_processes auto;
+
+events { }
+
+stream {
+    server {
+        listen {{ local_port }};
+        proxy_pass {{ remote_host }}:{{ remote_port }};
+    }
+}

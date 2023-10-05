@@ -12,6 +12,7 @@ message Request {
 message UpdateTargets {
     string uid = 1;
     repeated string remote_listeners = 2;
+    string role = 3;
 }
 
 message Release {
@@ -21,6 +22,7 @@ message Release {
 message Hello {
     string uid = 1;
     repeated string prod_listeners = 2;
+    string role = 3;
 }
 
 message Response {
@@ -30,6 +32,7 @@ message Response {
 
 message AppResponse {
     string message = 1;
+    repeated string listeners = 2;
 }
 
 service Control {

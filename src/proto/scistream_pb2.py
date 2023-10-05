@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fscistream.proto\x12\tscistream\"D\n\x07Request\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x0c\n\x04role\x18\x02 \x01(\t\x12\x10\n\x08num_conn\x18\x03 \x01(\x05\x12\x0c\n\x04rate\x18\x04 \x01(\x05\"6\n\rUpdateTargets\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x18\n\x10remote_listeners\x18\x02 \x03(\t\"\x16\n\x07Release\x12\x0b\n\x03uid\x18\x01 \x01(\t\",\n\x05Hello\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x16\n\x0eprod_listeners\x18\x02 \x03(\t\"5\n\x08Response\x12\x11\n\tlisteners\x18\x01 \x03(\t\x12\x16\n\x0eprod_listeners\x18\x02 \x03(\t\"\x1e\n\x0b\x41ppResponse\x12\x0f\n\x07message\x18\x01 \x01(\t2\xd9\x01\n\x07\x43ontrol\x12.\n\x03req\x12\x12.scistream.Request\x1a\x13.scistream.Response\x12\x37\n\x06update\x12\x18.scistream.UpdateTargets\x1a\x13.scistream.Response\x12\x32\n\x07release\x12\x12.scistream.Release\x1a\x13.scistream.Response\x12\x31\n\x05hello\x12\x10.scistream.Hello\x1a\x16.scistream.AppResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fscistream.proto\x12\tscistream\"D\n\x07Request\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x0c\n\x04role\x18\x02 \x01(\t\x12\x10\n\x08num_conn\x18\x03 \x01(\x05\x12\x0c\n\x04rate\x18\x04 \x01(\x05\"D\n\rUpdateTargets\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x18\n\x10remote_listeners\x18\x02 \x03(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\"\x16\n\x07Release\x12\x0b\n\x03uid\x18\x01 \x01(\t\":\n\x05Hello\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x16\n\x0eprod_listeners\x18\x02 \x03(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\"5\n\x08Response\x12\x11\n\tlisteners\x18\x01 \x03(\t\x12\x16\n\x0eprod_listeners\x18\x02 \x03(\t\"1\n\x0b\x41ppResponse\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x11\n\tlisteners\x18\x02 \x03(\t2\xd9\x01\n\x07\x43ontrol\x12.\n\x03req\x12\x12.scistream.Request\x1a\x13.scistream.Response\x12\x37\n\x06update\x12\x18.scistream.UpdateTargets\x1a\x13.scistream.Response\x12\x32\n\x07release\x12\x12.scistream.Release\x1a\x13.scistream.Response\x12\x31\n\x05hello\x12\x10.scistream.Hello\x1a\x16.scistream.AppResponseb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'scistream_pb2', globals())
@@ -23,15 +23,15 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _REQUEST._serialized_start=30
   _REQUEST._serialized_end=98
   _UPDATETARGETS._serialized_start=100
-  _UPDATETARGETS._serialized_end=154
-  _RELEASE._serialized_start=156
-  _RELEASE._serialized_end=178
-  _HELLO._serialized_start=180
-  _HELLO._serialized_end=224
-  _RESPONSE._serialized_start=226
-  _RESPONSE._serialized_end=279
-  _APPRESPONSE._serialized_start=281
-  _APPRESPONSE._serialized_end=311
-  _CONTROL._serialized_start=314
-  _CONTROL._serialized_end=531
+  _UPDATETARGETS._serialized_end=168
+  _RELEASE._serialized_start=170
+  _RELEASE._serialized_end=192
+  _HELLO._serialized_start=194
+  _HELLO._serialized_end=252
+  _RESPONSE._serialized_start=254
+  _RESPONSE._serialized_end=307
+  _APPRESPONSE._serialized_start=309
+  _APPRESPONSE._serialized_end=358
+  _CONTROL._serialized_start=361
+  _CONTROL._serialized_end=578
 # @@protoc_insertion_point(module_scope)

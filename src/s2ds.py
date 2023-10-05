@@ -7,6 +7,7 @@ class S2DSException(Exception):
     pass
 
 class S2DS():
+    ## TODO Cleanup
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
@@ -45,3 +46,106 @@ class S2DS():
             curr_proc.stdin.write(curr_remote_conn.encode())
             curr_proc.stdin.flush()
             self.logger.info(f"S2DS subprocess establishing connection with {curr_remote_conn.strip()}...")
+
+import docker
+from jinja2 import Environment, FileSystemLoader
+
+class Haproxy():
+    def __init__(self):
+        pass
+
+    def release(self, entry):
+        pass
+
+    def start(self, num_conn, listener_ip):
+        entry={"s2ds_proc":[], "listeners":["127.0.0.1:5001"]}
+        return entry
+
+    def update_listeners(self, listeners, s2ds_proc):
+        remote_host, remote_port = listeners[0].split(":")
+        #remote_host = 192.168.0.26
+        #remote_port = 7000
+        local_port=5001
+        vars = {
+            'local_port': local_port,
+            'remote_host': remote_host,
+            'remote_port': remote_port,
+        }
+        # Load the Jinja2 environment and get the template
+        env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
+        template = env.get_template(f'haproxy.cfg.j2')
+        # Render the template to create the HAProxy configuration file
+        with open('haproxy.cfg', 'w') as f:
+            f.write(template.render(vars))
+
+        # Connect to Docker
+        client = docker.from_env()
+
+        # Define the HAProxy container configuration
+        container_config = {
+            'image': 'haproxy:latest',
+            'name': 'myhaproxy',
+            'detach': True,
+            'ports': {f'{local_port}/tcp':local_port},
+            'volumes': {f'{Path(__file__).parent}/haproxy.cfg': {'bind': '/usr/local/etc/haproxy/haproxy.cfg', 'mode': 'ro'}},
+            'network': 'mynetwork',
+        }
+        # Start the HAProxy container
+        name= "myhaproxy"
+        try:
+            container = client.containers.get(name)
+            print(f'Container {name} already exists')
+        except docker.errors.NotFound:
+            print(f'Creating container {name}')
+            container = client.containers.run(**container_config)
+
+        print(f'Started HAProxy container with ID {container.id}')
+
+class Nginx():
+    def __init__(self):
+        pass
+
+    def release(self, entry):
+        pass
+
+    def start(self, num_conn, listener_ip):
+        entry={"s2ds_proc":[], "listeners":["127.0.0.1:5002"]}
+        return entry
+
+    def update_listeners(self, listeners, s2ds_proc):
+        remote_host, remote_port = listeners[0].split(":")
+        local_port=5002
+        vars = {
+            'local_port': local_port,
+            'remote_host': remote_host,
+            'remote_port': remote_port,
+        }
+        # Load the Jinja2 environment and get the template
+        env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
+        template = env.get_template(f'nginx.conf.j2')
+        # Render the template to create the NGINX configuration file
+        with open('nginx.conf', 'w') as f:
+            f.write(template.render(vars))
+
+        # Connect to Docker
+        client = docker.from_env()
+
+        # Define the NGINX container configuration
+        container_config = {
+            'image': 'nginx:latest',
+            'name': 'mynginx',
+            'detach': True,
+            'ports': {f'{local_port}/tcp':local_port},
+            'volumes': {f'{Path(__file__).parent}/nginx.conf': {'bind': '/etc/nginx/nginx.conf', 'mode': 'ro'}},
+            'network': 'mynetwork',
+        }
+        # Start the NGINX container
+        name= "mynginx"
+        try:
+            container = client.containers.get(name)
+            print(f'Container {name} already exists')
+        except docker.errors.NotFound:
+            print(f'Creating container {name}')
+            container = client.containers.run(**container_config)
+
+        print(f'Started NGINX container with ID {container.id}')
