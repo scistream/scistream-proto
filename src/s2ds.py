@@ -102,11 +102,7 @@ class Haproxy():
         try:
             container = client.containers.get(name)
             print(f'Container {name} already exists')
-            container.stop()
-            container.remove()
-            print(f'Creating container {name}')
-            container = client.containers.run(**container_config)
-
+            container.restart()
         except docker.errors.NotFound:
             print(f'Creating container {name}')
             container = client.containers.run(**container_config)
