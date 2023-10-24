@@ -12,7 +12,7 @@ from proto import scistream_pb2
 from proto import scistream_pb2_grpc
 
 class AppCtrl():
-    def __init__(self, uid, role, s2cs, access_token):
+    def __init__(self, uid, role, s2cs, access_token, controller_ip="127.0.0.1"):
         ## Maybe be a scistream notifier
         ## Actually mocking an app controller call here
         # TODO catch connection error
@@ -22,7 +22,8 @@ class AppCtrl():
         MAX_RETRIES = 5  # Define a constant for the maximum number of retries
         retry_count = 0
         if role == "PROD":
-            request.prod_listeners.extend(['127.0.0.1:7000', '127.0.0.1:17000', '127.0.0.1:27000', '127.0.0.1:37000', '127.0.0.1:47000'])
+            ##LEARN DEFINE which IP address will teh producer listen for connection requests
+            request.prod_listeners.extend([f'{controller_ip}:7000', f'{controller_ip}:17000', f'{controller_ip}:27000', f'{controller_ip}:37000', f'{controller_ip}:47000'])
         with grpc.insecure_channel(s2cs) as channel:
             s2cs = scistream_pb2_grpc.ControlStub(channel)
             request.role = role
@@ -145,8 +146,14 @@ def check_if_port_in_use(port):
 @click.argument('port', type=str, default="7000")
 def iperf_server(port):
     if not check_if_port_in_use(port):
-        subprocess.Popen(["iperf", "-s", "-p", str(port)])
+        cmds = ["iperf3", "-s", "-p", str(port)]
+        with open('server_output.txt', 'w') as f:
+            subprocess.Popen(
+                cmds,
+                stdout=f,
+                stderr=subprocess.STDOUT)
         print(f"Started iperf server on port {port}")
+        print(" ".join(cmds))
     else:
         print(f"Port {port} is already in use")
 
@@ -156,10 +163,27 @@ def iperf_client(target):
     try:
         server_ip, port = target.split(":")
         print("STARTING IPERF CLIENT with port:", str(port))
-        iperf_process = subprocess.Popen(['iperf', '-t', '10', '-c', server_ip, '-p', str(port)])
+        time.sleep(10)
+        cmds = ['iperf3', '-t', '10', '-c', server_ip, '-p', str(port), "-R"]
+        print(" ".join(cmds))
+        with open('client_output.txt', 'w') as f:
+            iperf_process = subprocess.Popen(
+                cmds,
+                stdout = f,
+                stderr = subprocess.STDOUT)
         print("iperf client started with pid:", iperf_process.pid)
     except Exception as e:
         print("Error starting iperf client:", str(e))
+
+@cli.command()
+@click.argument('uid', type=str)
+@click.argument('s2cs', type=str, default='localhost:5000')
+@click.argument('access_token', type=str)
+@click.argument('role', type=str)
+@click.argument('controller_ip', type=str, default="127.0.0.1")
+def create_appctrl(uid, s2cs, access_token, role, controller_ip):
+    app_ctrl_instance = IperfCtrl(uid, role, s2cs, access_token, controller_ip)
+    click.echo(f"Created IperfCtrl instance")
 
 if __name__ == '__main__':
     cli()

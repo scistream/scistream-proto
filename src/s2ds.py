@@ -6,6 +6,14 @@ from pathlib import Path
 class S2DSException(Exception):
     pass
 
+def create_instance(class_name):
+    try:
+        instance = eval(f"{class_name}()")
+        return instance
+    except NameError:
+         print(f"Class {class_name} is not defined.")
+    return create_instance(type)
+
 class S2DS():
     ## TODO Cleanup
     def __init__(self):
@@ -58,16 +66,15 @@ class Haproxy():
         pass
 
     def start(self, num_conn, listener_ip):
-        entry={"s2ds_proc":[], "listeners":["127.0.0.1:5001"]}
+        ##STOP hardcoding port 5001
+        self.local_port= "5001"
+        entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:{self.local_port}"]}
         return entry
 
     def update_listeners(self, listeners, s2ds_proc):
         remote_host, remote_port = listeners[0].split(":")
-        #remote_host = 192.168.0.26
-        #remote_port = 7000
-        local_port=5001
         vars = {
-            'local_port': local_port,
+            'local_port': self.local_port,
             'remote_host': remote_host,
             'remote_port': remote_port,
         }
@@ -75,7 +82,8 @@ class Haproxy():
         env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
         template = env.get_template(f'haproxy.cfg.j2')
         # Render the template to create the HAProxy configuration file
-        with open('haproxy.cfg', 'w') as f:
+        #renders file to a slightly different location
+        with open(f'{Path(__file__).parent}/haproxy.cfg', 'w') as f:
             f.write(template.render(vars))
 
         # Connect to Docker
@@ -86,15 +94,15 @@ class Haproxy():
             'image': 'haproxy:latest',
             'name': 'myhaproxy',
             'detach': True,
-            'ports': {f'{local_port}/tcp':local_port},
             'volumes': {f'{Path(__file__).parent}/haproxy.cfg': {'bind': '/usr/local/etc/haproxy/haproxy.cfg', 'mode': 'ro'}},
-            'network': 'mynetwork',
+            'network_mode': 'host'
         }
         # Start the HAProxy container
         name= "myhaproxy"
         try:
             container = client.containers.get(name)
             print(f'Container {name} already exists')
+            container.restart()
         except docker.errors.NotFound:
             print(f'Creating container {name}')
             container = client.containers.run(**container_config)
