@@ -9,9 +9,9 @@ Furthermore, either producers, consumers, or both may lack external network conn
 If you want to learn more, please take a look at our [HPDC'22 paper](https://dl.acm.org/doi/abs/10.1145/3502181.3531475).
 
 ## Pre-requisites
-We use [poetry](https://python-poetry.org/docs/) to manage our python environments. Please ensure you have Python 3.9+ and poetry installed in your environment.
+We use [poetry](https://python-poetry.org/docs/) to manage our python environments. Please ensure you have Python 3.9+ and poetry installed in your environment. We require docker for using the Haproxy and NGINX S2DS implementation. We provide a setup scrit that was used to install these dependencies on the Fabric platform. This installation script was tested on ubuntu 20.04 version.
 
-We also use a Git submodules to manage dependencies, such as the SciStream project. To set up the SciStream Data Server (S2DS) submodule, run the following commands:
+We also use a Git submodules to manage dependencies, such as the original S2DS implementation project. To set up the SciStream Data Server (S2DS) submodule, run the following commands:
 
 ~~~
 git submodule init
@@ -23,9 +23,10 @@ cd ../../
 
 This process initializes, updates, and compiles the submodule, streamlining your project setup and ensuring compatibility with the latest version of the parent project.
 
+
 ## Quick Start
 
-The following commands download and installs all the necessary python dependencies. It also activates the virtual environment.
+Once you have the dependencies the following commands download and installs all the necessary python dependencies. It also activates the virtual environment.
 
 ~~~
 poetry install
@@ -52,6 +53,7 @@ tests/test_s2cs.py .x....                                                       
 ===================================== 5 passed, 1 xfailed in 5.81s ======================================
 ~~~
 
+Once this runs all the
 ## Tutorial
 
 ### Authentication
@@ -90,8 +92,14 @@ To understand the behavior of the code let's simulate the environment by opening
 To run this you will need to open multiple terminals:
 
 ~~~
-python src/s2cs.py start --port=5000 --listener-ip=127.0.0.1
-python src/s2uc.py request1
+python src/s2cs.py --port=5000 --listener-ip=10.133.137.2 --verbose --type=Haproxy
+python src/s2uc.py prod-req --s2cs 10.133.137.2:5000
+
+python src/appcontroller.py create-appctrl cac92bb0-7345-11ee-9876-bff742c41932 10.130.134.2:5000 AgpQoBo1VvvYkz8yYxyQgkgrW7nobYmG6dno8q8rgKG9MMYDM2IvCjgEezy8mqJpqvMl44GDq5GKayTyvkXn4fdmoB2 PROD 10.133.139.2
+
+python src/s2uc.py cons-req --s2cs 10.130.134.2:5000 cac92bb0-7345-11ee-9876-bff742c41932 10.133.137.2:5001
+
+python src/appcontroller.py create-appctrl cac92bb0-7345-11ee-9876-bff742c41932 10.130.134.2:5000 AgpQoBo1VvvYkz8yYxyQgkgrW7nobYmG6dno8q8rgKG9MMYDM2IvCjgEezy8mqJpqvMl44GDq5GKayTyvkXn4fdmoB2 CONS 10.130.133.2
 ~~~
 
 Several things will happen in the background to learn more please review the code. The output of the client should look like this:
@@ -130,6 +138,33 @@ This should output more info, if you continue facing issues please create an iss
 Make sure that you start the poetry environment with the correct python version
 
 ## Specification
+
+## Authentication
+
+How to create scopes:
+
+CLIENT_ID="your_client_id"
+CLIENT_SECRET="your_client_secret"
+
+curl -s -u "$CLIENT_ID:$CLIENT_SECRET" -H \
+    'Content-Type: application/json' \
+    -X POST https://auth.globus.org/v2/api/clients/$CLIENT_ID/scopes \
+    -d '{
+        "scope": {
+            "name": "Scistream Operations",
+            "description": "All Operations on Scistream",
+            "scope_suffix": "scistream",
+            "dependent_scopes": [
+                    {
+                        "optional": false,
+                        "requires_refresh_token": true,
+                        "scope": "73320ffe-4cb4-4b25-a0a3-83d53d59ce4f"
+                    }
+                ],
+            "advertised": false,
+            "allow_refresh_tokens": true
+        }
+    }' | jq
 
 ### Service
 The protocol should enable high-speed, memory-to-memory data streaming in scientific environments

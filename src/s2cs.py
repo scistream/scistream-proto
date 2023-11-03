@@ -26,6 +26,13 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.client_id = client_id
         self.client_secret = client_secret
         self.type = type
+        # Moving checker instantiation to the begginning, this was making the request take too long
+        if self.client_secret != "":
+            self.checker = TokenChecker(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                expected_scopes=[f"https://auth.globus.org/scopes/{self.client_id}/scistream"]
+                )
         set_verbosity(self, verbose)
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
@@ -111,14 +118,9 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return AppResponse
 
     def validate_creds(self, access_token):
-        scope_string = f"https://auth.globus.org/scopes/{self.client_id}/scistream"
-        checker = TokenChecker(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            expected_scopes=[scope_string]
-            )
-        auth_state=checker.check_token(access_token)
+        auth_state=self.checker.check_token(access_token)
         return len(auth_state.identities) > 0
+        #return False
 
 def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False, client_id=default_cid, client_secret=default_secret):
     try:

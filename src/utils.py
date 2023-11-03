@@ -60,10 +60,13 @@ def authenticated(func):
             return func(*args, **kwargs)
         metadata = dict(context.invocation_metadata())
         auth_token = metadata.get('authorization')
+        error_message = f'scope_id {self.client_id}'
         if not auth_token:
-            context.abort(StatusCode.UNAUTHENTICATED, 'Authentication token is missing')
+            print(f'Authentication token is missing for scope_id {self.client_id}')
+            context.abort(StatusCode.UNAUTHENTICATED, f'Authentication token is missing for scope {self.client_id}')
         if not self.validate_creds(auth_token):
-            context.abort(StatusCode.UNAUTHENTICATED, f"Authentication token is invalid")
+            print(f'Authentication token is invalid for scope_id {self.client_id}')
+            context.abort(StatusCode.UNAUTHENTICATED, f'Authentication token is invalid for scope {self.client_id}')
         return func(*args, **kwargs)
     return decorated_function
 
@@ -72,7 +75,7 @@ def authorize(func):
     def wrapper(*args, **kwargs):
         #print("started client authorization")
         kwargs['metadata'] = (
-            ('authorization', f'{get_access_token()}'),
+            ('authorization', f'{get_access_token(kwargs["scope_id"])}'),
         )
         return func(*args, **kwargs)
     return wrapper
@@ -86,15 +89,24 @@ def storage_adapter():
     return storage_adapter._instance
 _cache={}
 
-def get_access_token():
-    if 'token' in _cache:
-        return _cache['token']
+def get_access_token(scope_id):
+    if scope_id in _cache:
+        return _cache[scope_id]
     tokens = storage_adapter().get_by_resource_server()
-    scope, auth_data = next( iter( tokens.items() ) )
-    if auth_data:
-        _cache['token']=auth_data['access_token']
-    else:
+    if scope_id == "":
+        _cache[scope_id] = "INVALID_TOKEN"
+        return "INVALID_TOKEN"
+    if not tokens:
         raise UnauthorizedError()
+    if scope_id not in tokens:
+        raise UnauthorizedError()
+    auth_data = tokens[scope_id]
+    if auth_data and 'access_token' in auth_data:
+        _cache[scope_id] = auth_data['access_token']
+    else:
+        _cache[scope_id] = "INVALID_TOKEN"
+        raise UnauthorizedError()
+
     return auth_data['access_token']
 
 def set_verbosity(self, verbose):
