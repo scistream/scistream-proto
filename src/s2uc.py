@@ -23,10 +23,10 @@ def get_client():
 def get_scope_id(s2cs):
     scope_map={
         "10.16.42.61": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
-        "10.16.41.12": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "10.16.41.12": "26c25f3c-c4b7-4107-8a25-df96898a24fe",
         "10.16.42.31": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
         "localhost": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
-        "127.0.0.1": "26c25f3c-c4b7-4107-8a25-df96898a24fe"
+        "127.0.0.1": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8"
     }
     ip = s2cs.split(":")[0]
 

@@ -77,6 +77,16 @@ class Haproxy():
         return entry
 
     def update_listeners(self, listeners, s2ds_proc):
+        cfg_filename = f'{Path(__file__).parent}/haproxy.cfg'
+        if self.docker_plugin_type == "default":
+           # Connect to Docker
+           docker_client = DockerPlugin()
+        if self.docker_plugin_type == "janus":
+           docker_client = JanusPlugin()
+        if self.docker_plugin_type == "dockersock":
+           docker_client = DockerSockPlugin()
+           cfg_filename = "/data/scistream-demo/configs/haproxy.cfg"
+
         vars = {
             'local_ports': self.local_ports,
             'dest_array': listeners
@@ -86,22 +96,14 @@ class Haproxy():
         template = env.get_template(f'haproxy.cfg.j2')
         # Render the template to create the HAProxy configuration file
         #renders file to a slightly different location
-        with open(f'{Path(__file__).parent}/haproxy.cfg', 'w') as f:
+        with open(f'{cfg_filename}', 'w') as f:
             f.write(template.render(vars))
-
-        if self.docker_plugin_type == "default":
-           # Connect to Docker
-           docker_client = DockerPlugin()
-        if self.docker_plugin_type == "janus":
-           docker_client = JanusPlugin()
-        if self.docker_plugin_type == "dockersock":
-           docker_client = DockerSockPlugin()
         # Define the HAProxy container configuration
         container_config = {
             'image': 'haproxy:latest',
             'name': 'myhaproxy',
             'detach': True,
-            'volumes': {"/data/scistream-demo/configs/haproxy.cfg": {'bind': '/usr/local/etc/haproxy/haproxy.cfg', 'mode': 'ro'}},
+            'volumes': {f"{cfg_filename}": {'bind': '/usr/local/etc/haproxy/haproxy.cfg', 'mode': 'ro'}},
             'network_mode': 'host'
         }
         # Start the HAProxy container
