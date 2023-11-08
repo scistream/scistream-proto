@@ -239,7 +239,7 @@ def prod_req(num_conn, rate, s2cs):
         prod_lstn = prod_resp.listeners
         prod_app_lstn = prod_resp.prod_listeners
         # Update the prod_stub
-        update(prod_stub, uid, prod_resp.prod_listeners)
+        update(prod_stub, uid, prod_resp.prod_listeners, scope_id=scope_id)
         print(prod_resp.listeners)
 
 @cli.command()
@@ -258,7 +258,7 @@ def cons_req(num_conn, rate, s2cs, uid, prod_lstn):  # uid and prod_lstn are dep
             cons_resp = cons_resp_future.result()
         cons_lstn = cons_resp.listeners
         # Update the cons_stub
-        update(cons_stub, uid, [prod_lstn])  # prod_lstn is a dependency from PROD context
+        update(cons_stub, uid, [prod_lstn], scope_id=scope_id)  # prod_lstn is a dependency from PROD context
 
 
 @utils.authorize
