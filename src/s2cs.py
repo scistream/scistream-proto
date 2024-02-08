@@ -123,6 +123,18 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         #return False
 
 def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False, client_id=default_cid, client_secret=default_secret):
+    """
+    Starts a gRPC implementation of Scistream server.
+
+    Args:
+        listener_ip (str): IP address on which the server listens. Defaults to '0.0.0.0'.
+        port (int): Port number on which the server listens. Defaults to 5000.
+        type (str): Specifies the type of server to start. Options are 'S2DS', 'Nginx', 'Haproxy'.
+                    'S2DS' is the default type.
+        v or verbose (bool): Enables basic verbosity. Defaults to False.
+        client_id (str): Client ID for authentication. Defaults to value of 'default_cid'.
+        client_secret (str): Client secret for authentication. Defaults to value of 'default_secret'.
+    """
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         servicer = S2CS(listener_ip, (v or verbose), type, client_id, client_secret)

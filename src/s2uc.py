@@ -223,10 +223,11 @@ def request2(num_conn, rate, s2cs, access_code):
 @click.option('--num_conn', type=int, default=5)
 @click.option('--rate', type=int, default=10000)
 @click.option('--s2cs', default="localhost:5000")
-def prod_req(num_conn, rate, s2cs):
+@click.option('--mock', default=False)
+def prod_req(num_conn, rate, s2cs, mock):
     with grpc.insecure_channel(s2cs) as channel:
         prod_stub = scistream_pb2_grpc.ControlStub(channel)
-        uid = str(uuid.uuid1())
+        uid = str(uuid.uuid1()) if not mock else "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3"
         click.echo("uid; s2cs; access_token; role")
         scope_id = get_scope_id(s2cs)
         click.echo(f"{uid} {s2cs} {utils.get_access_token(scope_id)} PROD")
@@ -258,7 +259,11 @@ def cons_req(num_conn, rate, s2cs, uid, prod_lstn):  # uid and prod_lstn are dep
             cons_resp = cons_resp_future.result()
         cons_lstn = cons_resp.listeners
         # Update the cons_stub
-        update(cons_stub, uid, [prod_lstn], scope_id=scope_id)  # prod_lstn is a dependency from PROD context
+        if ',' in prod_lstn:
+            listener_array = prod_lstn.split(',')
+        else:
+            listener_array = [prod_lstn]
+        update(cons_stub, uid, listener_array, scope_id=scope_idexit)  # prod_lstn is a dependency from PROD context
 
 
 @utils.authorize
