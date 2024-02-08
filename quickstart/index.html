@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Quickstart - Scistream</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Quickstart";
+        var mkdocs_page_input_path = "quickstart.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Scistream
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Index</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Quickstart</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#scistream-control-protocol">SciStream Control Protocol</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pre-requisites">Pre-requisites</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick Start</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#faq">FAQ</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#specification">Specification</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#authentication">Authentication</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../about/Changelog/">Changelog</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Dev guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev-guide/">Developer Guide</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../user-guide/">User Guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../user-guide/auth/">Auth</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Scistream</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Quickstart</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="quickstart">Quickstart</h1>
+<h2 id="scistream-control-protocol">SciStream Control Protocol</h2>
+<p>The SciStream protocol attempts to tackle the problem of enabling high-speed,
+memory-to-memory data streaming in scientific environments.
+This task is particularly challenging because data producers
+(e.g., data acquisition applications on scientific instruments, simulations on supercomputers)
+and consumers (e.g., data analysis applications) may be in different security domains
+(and thus require bridging of those domains).
+Furthermore, either producers, consumers, or both may lack external network connectivity (and thus require traffic forwarding proxies).
+If you want to learn more, please take a look at our <a href="https://dl.acm.org/doi/abs/10.1145/3502181.3531475">HPDC'22 paper</a>.</p>
+<h2 id="pre-requisites">Pre-requisites</h2>
+<p>We use <a href="https://python-poetry.org/docs/">poetry</a> to manage our python environments. Please ensure you have Python 3.9+ and poetry installed in your environment. We require docker for using the Haproxy and NGINX S2DS implementation. We provide a setup scrit that was used to install these dependencies on the Fabric platform. This installation script was tested on ubuntu 20.04 version.</p>
+<p>We also use a Git submodules to manage dependencies, such as the original S2DS implementation project. To set up the SciStream Data Server (S2DS) submodule, run the following commands:</p>
+<pre><code>git submodule init
+git submodule update
+cd scistream/S2DS
+make
+cd ../../
+</code></pre>
+<p>This process initializes, updates, and compiles the submodule, streamlining your project setup and ensuring compatibility with the latest version of the parent project.</p>
+<h2 id="quick-start">Quick Start</h2>
+<p>Once you have the dependencies the following commands download and installs all the necessary python dependencies. It also activates the virtual environment.</p>
+<pre><code>poetry install
+poetry shell
+~~~~
+
+The easiest way to verify if the code works is to run pytest:
+
+</code></pre>
+<p>poetry run pytest</p>
+<pre><code>
+The output of the test should look like this:
+
+</code></pre>
+<p>========================================== test session starts ==========================================
+platform linux -- Python 3.9.16, pytest-7.2.2, pluggy-1.0.0
+rootdir: /home/fcastro/dev/scistream-proto
+plugins: timeout-2.1.0
+collected 6 items                                                                                       </p>
+<p>tests/test_s2cs.py .x....                                                                         [100%]</p>
+<p>===================================== 5 passed, 1 xfailed in 5.81s ======================================</p>
+<pre><code>
+Once this runs all the
+## Tutorial
+
+### Authentication
+
+We integrated with globus platform for the purpose of authentication.
+
+If your token expired you might want to start by logging out.
+</code></pre>
+<p>$ python src/s2uc.py logout</p>
+<pre><code>
+After that let's log in:
+
+</code></pre>
+<p>$ python src/s2uc.py login</p>
+<pre><code>
+You will see a URL. You need to open the url provided in a web browser, log in with the proper credentials, then copy and paste the authorization code into the cli prompt.
+
+</code></pre>
+<p>(scistream-proto-py3.9) bash-3.2$ python src/s2uc.py login
+Please authenticate with Globus here:
+<code>------------------------------------
+https://auth.globus.org/v2/oauth2/authorize?client_id=4787c84e-9c55-a11c&amp;redirect_uri=https%3A%2F%2Fauth.globus.org=login
+------------------------------------</code></p>
+<p>Enter the resulting Authorization Code here:</p>
+<pre><code>
+After logging in you can move to the next tutorial step.
+
+### Running scistream
+
+To understand the behavior of the code let's simulate the environment by opening 3 terminals, 1 for the s2cs Producer, 1 for s2cs Consumer, and one for the client terminal.
+
+To run this you will need to open multiple terminals:
+
+</code></pre>
+<p>python src/s2cs.py --port=5000 --listener-ip=10.133.137.2 --verbose --type=Haproxy
+python src/s2uc.py prod-req --s2cs 10.133.137.2:5000</p>
+<p>python src/appcontroller.py create-appctrl cac92bb0-7345-11ee-9876-bff742c41932 10.130.134.2:5000 AgpQoBo1VvvYkz8yYxyQgkgrW7nobYmG6dno8q8rgKG9MMYDM2IvCjgEezy8mqJpqvMl44GDq5GKayTyvkXn4fdmoB2 PROD 10.133.139.2</p>
+<p>python src/s2uc.py cons-req --s2cs 10.130.134.2:5000 cac92bb0-7345-11ee-9876-bff742c41932 10.133.137.2:5001</p>
+<p>python src/appcontroller.py create-appctrl cac92bb0-7345-11ee-9876-bff742c41932 10.130.134.2:5000 AgpQoBo1VvvYkz8yYxyQgkgrW7nobYmG6dno8q8rgKG9MMYDM2IvCjgEezy8mqJpqvMl44GDq5GKayTyvkXn4fdmoB2 CONS 10.130.133.2</p>
+<pre><code>
+Several things will happen in the background to learn more please review the code. The output of the client should look like this:
+
+</code></pre>
+<p>listeners: "0.0.0.0:43579"
+listeners: "0.0.0.0:34375"
+listeners: "0.0.0.0:34343"
+listeners: "0.0.0.0:38223"
+listeners: "0.0.0.0:34865"
+prod_listeners: "127.0.0.1:7000"
+prod_listeners: "127.0.0.1:17000"
+prod_listeners: "127.0.0.1:27000"
+prod_listeners: "127.0.0.1:37000"
+prod_listeners: "127.0.0.1:47000"</p>
+<p>Sending updated connection map information...
+82f0e9b8-eb7d-11ed-be3c-f303ca66dd31</p>
+<pre><code>In this case 82f0e9b8-eb7d-11ed-be3c-f303ca66dd31 is the uid, let's use that to send a release:
+</code></pre>
+<p>$ python src/s2uc.py release 82f0e9b8-eb7d-11ed-be3c-f303ca66dd31
+Release completed</p>
+<pre><code>## Troubleshooting Guide
+
+The first step of troubleshooting is restarting everything with the --verbose flag:
+</code></pre>
+<p>python src/s2cs.py start --port=5000 --listener-ip=127.0.0.1 --verbose
+~~~</p>
+<p>This should output more info, if you continue facing issues please create an issue on github.</p>
+<h2 id="faq">FAQ</h2>
+<p>Make sure that you start the poetry environment with the correct python version</p>
+<h2 id="specification">Specification</h2>
+<h2 id="authentication">Authentication</h2>
+<p>How to create scopes:</p>
+<p>CLIENT_ID="92c36fec-6d3c-41f6-a487-dfda1281c4e5"
+CLIENT_SECRET="oDU3/7WgwFU8nAX+Mtsnb4X6UeHBv7KJsA37U1xw6XQ="</p>
+<p>curl -s -u "$CLIENT_ID:$CLIENT_SECRET" -H \
+    'Content-Type: application/json' \
+    -X POST https://auth.globus.org/v2/api/clients/$CLIENT_ID/scopes \
+    -d '{
+        "scope": {
+            "name": "Scistream Operations",
+            "description": "All Operations on Scistream",
+            "scope_suffix": "scistream",
+            "dependent_scopes": [
+                    {
+                        "optional": false,
+                        "requires_refresh_token": true,
+                        "scope": "73320ffe-4cb4-4b25-a0a3-83d53d59ce4f"
+                    }
+                ],
+            "advertised": false,
+            "allow_refresh_tokens": true
+        }
+    }' | jq</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Index"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../about/Changelog/" class="btn btn-neutral float-right" title="Changelog">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../about/Changelog/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

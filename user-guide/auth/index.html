@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Auth - Scistream</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Auth";
+        var mkdocs_page_input_path = "user-guide/auth.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Scistream
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Index</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Quickstart</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/Changelog/">Changelog</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Dev guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../dev-guide/">Developer Guide</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">User Guide</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Auth</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#scistream-client-authentication-workflow">Scistream Client Authentication Workflow</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#1-simple-request-with-no-credentials">1. Simple request with no credentials</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1a-scistream-server-does-not-require-authentication-default-case">1a. Scistream Server Does Not Require Authentication (Default Case)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#1b-server-requires-authentication-failed">1b. Server Requires Authentication - Failed</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-successful-login-and-credential-verification">2. Successful Login and Credential Verification</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#2a-user-logs-into-an-existing-scope">2a. User logs into an existing scope</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2b-server-requires-authentication-failed-due-to-ip-lookup">2b. Server Requires Authentication - Failed due to IP lookup</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2d-server-requires-authentication-success">2d. Server Requires Authentication - Success</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#3-sending-a-command-without-relevant-credentials">3. Sending a Command without Relevant Credentials</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#4-logging-in-to-a-second-scope">4. Logging in to a Second Scope</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#5-sending-commands-to-multiple-servers-post-multi-scope-login">5. Sending Commands to Multiple Servers Post Multi-Scope Login</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#multiple-s2ds">Multiple S2DS</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Scistream</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User guide</li>
+      <li class="breadcrumb-item active">Auth</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="auth">Auth</h1>
+<h2 id="scistream-client-authentication-workflow">Scistream Client Authentication Workflow</h2>
+<p>Let's start from a clean slate by performing a logout:</p>
+<pre><code>(scistream-proto-py3.9) $ python src/s2uc.py logout
+Successfully logged out!
+</code></pre>
+<h2 id="1-simple-request-with-no-credentials">1. Simple request with no credentials</h2>
+<h4 id="1a-scistream-server-does-not-require-authentication-default-case">1a. Scistream Server Does Not Require Authentication (Default Case)</h4>
+<p>Notice this is the default behavior for the Scistream server, if we do not explicitly specify an authentication scope it will not require authentication. This is the command:</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2cs.py --verbose
+Server started on 0.0.0.0:5000
+</code></pre>
+<p>The client sends the request without needing to login.</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2uc.py prod-req
+uid; s2cs; access_token; role
+3bca6862-78f3-11ee-90c6-9801a78d65ff localhost:5000 INVALID_TOKEN PROD
+waiting for hello message
+started client request
+</code></pre>
+<p>The server processes the request without any authentication error.</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2cs.py --verbose
+Server started on 0.0.0.0:5000
+req started, with request uid: &quot;3bca6862-78f3-11ee-90c6-9801a78d65ff&quot;
+role: &quot;PROD&quot;
+num_conn: 5
+rate: 10000
+
+Added key: '3bca6862-78f3-11ee-90c6-9801a78d65ff' with entry: {'role': 'PROD', 'num_conn': 5, 'rate': 10000, 'hello_received': &lt;threading.Event object at 0x10ae8e370&gt;, 'prod_listeners': []}
+</code></pre>
+<h4 id="1b-server-requires-authentication-failed">1b. Server Requires Authentication - Failed</h4>
+<p>In this example we explictly specify a client secret, the client secret and client id is uniquely mapped to an authentication scope, and it will validate each request with globus and error on every request that is not authorized for this scope. Notice the server might take some time to start as it connects to Globus Auth. Example:</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2cs.py --client_secret=&quot;CONTACTUSFORTHIS&quot; --verbose
+Server started on 0.0.0.0:5000
+</code></pre>
+<p>Client command execution without credentials:</p>
+<pre><code>(scistream-proto-py3.9) $python src/s2uc.py prod-req
+uid; s2cs; access_token; role
+5b0aa168-78fa-11ee-9ad8-9801a78d65ff localhost:5000 INVALID_TOKEN PROD
+waiting for hello message
+started client request
+Please obtain new credentials: Authentication token is invalid for scope c42c0dac-0a52-408e-a04f-5d31bfe0aef8
+</code></pre>
+<p>Server response/error indicating the need for authentication.</p>
+<pre><code>Authentication token is invalid for scope_id c42c0dac-0a52-408e-a04f-5d31bfe0aef8
+Error in function 'req':
+Traceback (most recent call last):
+  File &quot;/Users/flaviojr123/dev/argonne/scistream-proto/src/utils.py&quot;, line 38, in wrapper
+    result = func(*args, **kwargs)
+  File &quot;/Users/flaviojr123/dev/argonne/scistream-proto/src/utils.py&quot;, line 69, in decorated_function
+    context.abort(StatusCode.UNAUTHENTICATED, f'Authentication token is invalid for scope {self.client_id}')
+  File &quot;/Users/flaviojr123/Library/Caches/pypoetry/virtualenvs/scistream-proto-pXNK2Vat-py3.9/lib/python3.9/site-packages/grpc/_server.py&quot;, line 404, in abort
+    raise Exception()
+Exception
+
+req took 0.0009 seconds
+</code></pre>
+<h2 id="2-successful-login-and-credential-verification">2. Successful Login and Credential Verification</h2>
+<h4 id="2a-user-logs-into-an-existing-scope">2a. User logs into an existing scope</h4>
+<pre><code>(scistream-proto-py3.9)$ python src/s2uc.py login --scope c42c0dac-0a52-408e-a04f-5d31bfe0aef8
+To obtain token for the scope, please open the URL in your browser and follow the instructions
+Please authenticate with Globus here:
+------------------------------------
+https://auth.globus.org/v2/oauth2/authorize?client_id=4787c84e-9c55-4881-b941-cb6720cea11c&amp;redirect_uri=https%3A%2F%2Fauth.globus.org%2Fv2%2Fweb%2Fauth-code&amp;scope=https%3A%2F%2Fauth.globus.org%2Fscopes%2Fc42c0dac-0a52-408e-a04f-5d31bfe0aef8%2Fscistream&amp;state=_default&amp;response_type=code&amp;code_challenge=lN6qHOyfH9t-D689XoVrCdjUS8RaBvyOZkOBaAuVpmM&amp;code_challenge_method=S256&amp;access_type=offline&amp;prompt=login
+------------------------------------
+
+Enter the resulting Authorization Code here:
+</code></pre>
+<p>After log in the user can then verify it's local credentials:</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2uc.py check-auth
+Access Token for scope 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8': Agxdy4EWykel6d1r84HoNVdw
+</code></pre>
+<h4 id="2b-server-requires-authentication-failed-due-to-ip-lookup">2b. Server Requires Authentication - Failed due to IP lookup</h4>
+<p>In this example we explictly specify an authentication scope, and it will validate each request with globus and error on every request that is not authorized for this scope. Example:</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2cs.py --client_secret=&quot;CONTACTUSFORTHIS&quot;
+</code></pre>
+<p><strong>Expected Behavior</strong>:
+  - The client sends request, but the client is not configured correctly
+  - The server throws an error indicating that it requires authentication.</p>
+<p>Notice that in the client request there's a lookup in a configuration file, we get the scope_id from the ip in the s2cs.</p>
+<pre><code>def get_scope_id(s2cs):
+    scope_map={
+        &quot;10.16.42.61&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;,
+        &quot;10.16.41.12&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;,
+        &quot;10.16.42.31&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;
+    }
+    ip = s2cs.split(&quot;:&quot;)[0]
+    return scope_map.get(ip, &quot;&quot;)
+    ## When IP is not found error silently, maybe not desirable
+</code></pre>
+<p>Client command execution without credentials:</p>
+<pre><code>(scistream-proto-py3.9) $python src/s2uc.py prod-req
+uid; s2cs; access_token; role
+5b0aa168-78fa-11ee-9ad8-9801a78d65ff localhost:5000 INVALID_TOKEN PROD
+waiting for hello message
+started client request
+Please obtain new credentials: Authentication token is invalid for scope c42c0dac-0a52-408e-a04f-5d31bfe0aef8
+</code></pre>
+<p>Server response/error indicating the need for authentication.</p>
+<pre><code>Authentication token is invalid for scope_id c42c0dac-0a52-408e-a04f-5d31bfe0aef8
+Error in function 'req':
+Traceback (most recent call last):
+  File &quot;/Users/flaviojr123/dev/argonne/scistream-proto/src/utils.py&quot;, line 38, in wrapper
+    result = func(*args, **kwargs)
+  File &quot;/Users/flaviojr123/dev/argonne/scistream-proto/src/utils.py&quot;, line 69, in decorated_function
+    context.abort(StatusCode.UNAUTHENTICATED, f'Authentication token is invalid for scope {self.client_id}')
+  File &quot;/Users/flaviojr123/Library/Caches/pypoetry/virtualenvs/scistream-proto-pXNK2Vat-py3.9/lib/python3.9/site-packages/grpc/_server.py&quot;, line 404, in abort
+    raise Exception()
+Exception
+
+req took 0.0009 seconds
+</code></pre>
+<h4 id="2d-server-requires-authentication-success">2d. Server Requires Authentication - Success</h4>
+<p>To configure this modify the s2uc file:</p>
+<pre><code>def get_scope_id(s2cs):
+    scope_map={
+        &quot;10.16.42.61&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;,
+        &quot;10.16.41.12&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;,
+        &quot;10.16.42.31&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;,
+        &quot;localhost&quot;: &quot;c42c0dac-0a52-408e-a04f-5d31bfe0aef8&quot;
+    }
+    ip = s2cs.split(&quot;:&quot;)[0]
+    return scope_map.get(ip, &quot;&quot;)
+</code></pre>
+<p>If the client is properly configured and we follow the steps above, then everything should work.</p>
+<pre><code>(scistream-proto-py3.9) $python src/s2uc.py prod-req
+uid; s2cs; access_token; role
+localhost
+b87c38b2-798f-11ee-9fa8-9801a78d65ff localhost:5000 Agxdy4EWwGr84HoNVdw PROD
+waiting for hello message
+started client request
+</code></pre>
+<pre><code>req started, with request uid: &quot;b87c38b2-798f-11ee-9fa8-9801a78d65ff&quot;
+role: &quot;PROD&quot;
+num_conn: 5
+rate: 10000
+
+Added key: 'b87c38b2-798f-11ee-9fa8-9801a78d65ff' with entry: {'role': 'PROD', 'num_conn': 5, 'rate': 10000, 'hello_received': &lt;threading.Event object at 0x10e81a3d0&gt;, 'prod_listeners': []}
+</code></pre>
+<h4 id="3-sending-a-command-without-relevant-credentials">3. Sending a Command without Relevant Credentials</h4>
+<p>In this scenario, the client tries to send a command to a server without having the required credentials for the server's scope.</p>
+<p><strong>Server Setup</strong>:</p>
+<pre><code>(scistream-proto-py3.9)$ python src/s2cs.py --client_id=&quot;26c25f3c-c4b7-4107-8a25-df96898a24fe&quot; --client_secret=&quot;=&quot;
+</code></pre>
+<p>(Note: The server is expecting authentication for a particular scope_ID)</p>
+<p><strong>Client Command</strong>:</p>
+<pre><code>(scistream-proto-py3.9) $python src/s2uc.py prod-req
+uid; s2cs; access_token; role
+localhost
+a692c5ac-7990-11ee-a79a-9801a78d65ff localhost:5000 Agxdy484HoNVdw PROD
+waiting for hello message
+started client request
+Please obtain new credentials: Authentication token is invalid for scope 26c25f3c-c4b7-4107-8a25-df96898a24fe
+</code></pre>
+<p>(Note: The client is attempting to execute a command without the required credentials for the server's scope)</p>
+<pre><code>Authentication token is invalid for scope_id 26c25f3c-c4b7-4107-8a25-df96898a24fe
+</code></pre>
+<p><strong>Expected Behavior</strong>:
+  - The error provides instructions on how to obtain the necessary credentials.
+  - A remote error from the server is received, along with instructions.</p>
+<h4 id="4-logging-in-to-a-second-scope">4. Logging in to a Second Scope</h4>
+<p>In this scenario, after having logged in to one scope, the client attempts to log in to a second, different scope.</p>
+<p>The client attempts to log in to the second scope:</p>
+<pre><code>python src/s2uc.py login --scope 26c25f3c-c4b7-4107-8a25-df96898a24fe
+
+</code></pre>
+<p>Both credentials can be visualized using the appropriate CLI command.</p>
+<pre><code>python src/s2uc.py check-auth --scope 26c25f3c-c4b7-4107-8a25-df96898a24fe
+Access Token for scope '26c25f3c-c4b7-4107-8a25-df96898a24fe': AgV3ezP
+python src/s2uc.py check-auth
+Access Token for scope 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8': Agxdy4E
+</code></pre>
+<hr />
+<h4 id="5-sending-commands-to-multiple-servers-post-multi-scope-login">5. Sending Commands to Multiple Servers Post Multi-Scope Login</h4>
+<p>Following a successful multi-scope login, the client sends commands to servers associated with both scopes.</p>
+<p>Server Setup for the First Scope:</p>
+<pre><code>python src/s2cs.py --client_id=&quot;26c25f3c-c4b7-4107-8a25-df96898a24fe&quot; --client_secret=&quot;=&quot; --listener-ip=10.0.0.1
+</code></pre>
+<p>Server Setup for the Second Scope:</p>
+<pre><code>python src/s2cs.py --client_id=&quot;ca7207c4-c1fd-482f-916d-7997c6e05de2&quot; --client_secret=&quot;=&quot; --listener-ip=10.0.0.2
+</code></pre>
+<p>Client Command to Send to the First Server:</p>
+<pre><code>python src/s2uc.py prod-req --s2cs 10.0.0.1:5000
+</code></pre>
+<p>Client Command to Send to the Second Server:</p>
+<pre><code>python src/s2uc.py prod-req --s2cs 10.0.0.2:5000
+</code></pre>
+<p>Scope map:</p>
+<pre><code>scope_map={
+    &quot;10.0.0.1&quot;: &quot;26c25f3c-c4b7-4107-8a25-df96898a24fe&quot;,
+    &quot;10.0.0.2&quot;: &quot;ca7207c4-c1fd-482f-916d-7997c6e05de2&quot;,
+}
+</code></pre>
+<h4 id="multiple-s2ds">Multiple S2DS</h4>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../" class="btn btn-neutral float-left" title="User Guide"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>Scistream</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Index";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> Scistream
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href=".">Index</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#project-layout">Project layout</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#service">Service</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#software-components">Software components</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#environment">Environment</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#vocabulary-of-messages">Vocabulary of Messages</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#procedure-rules-informal">Procedure Rules (Informal)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#collaboration-diagram">Collaboration Diagram</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sequence-diagram">Sequence Diagram</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="quickstart/">Quickstart</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="about/Changelog/">Changelog</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Dev guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="dev-guide/">Developer Guide</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="user-guide/">User Guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="user-guide/auth/">Auth</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">Scistream</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Index</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="index">Index</h1>
+<p>Scistream enables high-speed memory-to-memory
+ data streaming in scientific environments.</p>
+<p>We have a python implementation and a deployment solution compatible with docker and kubernetes.</p>
+<p>If you want to learn more about Scistream, please take a look at our <a href="https://dl.acm.org/doi/abs/10.1145/3502181.3531475">HPDC'22 paper</a>.</p>
+<h2 id="documentation">Documentation</h2>
+<ul>
+<li><a href="quickstart/">Getting started</a></li>
+<li><a href="user-guide/">User Guide</a></li>
+<li><a href="dev-guide/">Developer Guide</a></li>
+<li><a href="benchmarks/README.md">Benchmarks</a></li>
+<li><a href="about/README.md">About</a></li>
+</ul>
+<h2 id="project-layout">Project layout</h2>
+<pre><code>poetry.lock         # Explicitly documents all Python dependencies using Poetry
+pyproject.toml      # Python dependencie: Poetry equivalent to requirements.txt
+mkdocs.yml          # Documentation configuration file.
+docs/
+  index.md          # The documentation homepage.
+  ...               # Other markdown pages, images and other files.
+deploy/
+  setup.sh          # Installation script
+src/
+  proto/            # GRPC protocol specifications
+  appcontroller.py  # Application controller reference implementations
+  s2cs.py           # Scistream Control Server implementation
+  s2ds.py           # Scistream Dataplane server plugin
+  s2uc.py           # Scistream User Client implementation
+  utils.py          # Supporting code
+  ...               # other files
+tests/
+  test_s2cs.py      # pytest tests
+  ...               # other tests
+</code></pre>
+<h3 id="service">Service</h3>
+<pre><code>  The protocol should enable high-speed, memory-to-memory data streaming in scientific environments
+  by establishing streaming data channels between two remote facilities using our reference architecture:
+
+  ![alt text](figures/simple-arch.png "SciStream architecture")
+
+  Buffer-and-forward elements are run at the Science DMZ to create bridges between the Ethernet-based WAN and HPC interconnets where data producers/consumers may reside.
+</code></pre>
+<h3 id="software-components">Software components</h3>
+<pre><code>  * **SciStream Data Server (S2DS):** software that runs on gateway nodes. It acts as a buffer-and-forward agent.
+  * **SciStream User Client (S2UC):** software that the end user and/or workflow engines/tools acting on behalf of the user interact with and provide relevant information (e.g., ID of a HPC job, ID of an experiment or data acquisition job on a scientific instrument, shared secret for secure communication with the user job (application) at the producer and consumer) to orchestrate end-to-end data streaming.
+  * **SciStream Control Server (S2CS):** a software running on one of the gateway nodes. It interacts with S2UC, data producer/consumer and S2DS.
+</code></pre>
+<h3 id="environment">Environment</h3>
+<pre><code>  * S2UC communicates with producer/consumer S2CS over a private LAN/WAN or the Internet
+  * S2CS and S2DS communicate over a LAN
+  * Messages can be lost or corrupted
+</code></pre>
+<h3 id="vocabulary-of-messages">Vocabulary of Messages</h3>
+<pre><code>  * **Requests:** { REQ, ReqListeners }
+  * **Responses:** { RESP, ProdLstn }
+  * **Commands:** { StartLstn, Hello, UpdateTargets, StartConn, Connect, REL }
+</code></pre>
+<h3 id="procedure-rules-informal">Procedure Rules (Informal)</h3>
+<pre><code>  0. The user selects producer and consumer facilities, and authenticates with them via S2UC.
+  1. S2UC establishes an authenticated connection to (both producer and consumer) S2CS, and sends the “user request” (REQ) for the streaming job (which contains unique-id, protocol, number of connections, streaming rate, producer address and consumer address)
+  2. S2CS requests num_conn ports from S2DS, whom reserves num_conn ports on gateway nodes depending on availability
+  3. Both producer and consumer S2CS send connection information (i.e., IP addresses and ports) for data connections to S2UC
+  4. When ProdApp starts, it connects to producer S2CS and presents the “unique-id” and set of port listeners
+  5. Prod S2CS forwards set of port listeners to S2UC
+  6. S2UC creates connection map and data connection credentials, and sends them to both producer and consumer S2CS
+  7. Both producer and consumer S2DS create bridges between Prod/Cons App and the WAN (i.e., start buffer-and-forward elements)
+  8. ConsApp establishes num_conn data streaming channels
+  9. Both S2DS use data connection credentials to establish external (WAN) streaming channel
+  10. ProdApp starts streaming task
+</code></pre>
+<h3 id="collaboration-diagram">Collaboration Diagram</h3>
+<pre><code>  ![alt text](figures/collaboration-diagram.png "SciStream collaboration diagram")
+</code></pre>
+<h3 id="sequence-diagram">Sequence Diagram</h3>
+<pre><code>  ![alt text](figures/scistream-protocol-simple.png "SciStream sequence diagram")
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="quickstart/" class="btn btn-neutral float-right" title="Quickstart">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="quickstart/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.5.3
+Build Date UTC : 2024-02-08 18:29:01.328182+00:00
+-->
