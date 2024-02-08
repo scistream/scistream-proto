@@ -1,4 +1,5 @@
-# Scistream Client Authentication Workflow
+# Auth
+## Scistream Client Authentication Workflow
 
 Let's start from a clean slate by performing a logout:
 ```
@@ -256,9 +257,5 @@ scope_map={
     "10.0.0.2": "ca7207c4-c1fd-482f-916d-7997c6e05de2",
 }
 ```
-**Expected Behavior**:
-  - Commands sent to both servers (each associated with different scopes) execute successfully.
 
-**Screenshots Required**:
-  - Successful command execution on the first server.
-  - Successful command execution on the second server.
+#### Multiple S2DS
