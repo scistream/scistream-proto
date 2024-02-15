@@ -9,8 +9,8 @@ import time
 import socket
 import sys
 import ipaddress
-from proto import scistream_pb2
-from proto import scistream_pb2_grpc
+from src.proto import scistream_pb2
+from src.proto import scistream_pb2_grpc
 
 def valid_ip(ip):
     try:

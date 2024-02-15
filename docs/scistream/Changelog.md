@@ -11,3 +11,4 @@ All notable changes to this project will be documented in this file.
 
 ### [Bug]
 - Hardcoded app controller ports for pvapy tests[WIP]
+- Modified behavior of get_access_token(). This needs to be further tested [WIP]

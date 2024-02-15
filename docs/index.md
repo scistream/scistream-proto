@@ -1,19 +1,19 @@
-# Index
+# Scistream Documentation
 
-Scistream enables high-speed memory-to-memory
- data streaming in scientific environments.
+Welcome to the Scistream Documentation. As in the case with any on-going project, these docs may fall out of sync with the project, but we’ll try our best to keep them accurate.
 
- We have a python implementation and a deployment solution compatible with docker and kubernetes.
+![Scientific Instrument needs to connect to analysis compute cluster in a different institution](figures/simple-arch.png "Scistream Architecture")
 
-If you want to learn more about Scistream, please take a look at our [HPDC'22 paper](https://dl.acm.org/doi/abs/10.1145/3502181.3531475).
+Scistream is a framework and toolkit that attempts to tackle the problem of enabling high-speed(+100Gbps), memory-to-memory data streaming in scientific environments. This task is particularly challenging because data producers (e.g., data acquisition applications on scientific instruments, simulations on supercomputers) and consumers (e.g., data analysis applications) may be in different institutions (security domains) and thus require bridging of those domains. Furthermore, either producers, consumers, or both may lack external network connectivity and thus require traffic forwarding proxies.
+
+If you want to learn more about Scistream, please check the ["What is Scistream" page](scistream/README.md). For further detail review our papers: [HPDC'22](https://dl.acm.org/doi/abs/10.1145/3502181.3531475) and [INDIS'22](https://ieeexplore.ieee.org/document/10024674).
 
 ## Documentation
 
+   - [What is Scistream?](scistream/README.md)
    - [Getting started](quickstart.md)
-   - [User Guide](user-guide/README.md)
-   - [Developer Guide](dev-guide/README.md)
-   - [Benchmarks](benchmarks/README.md)
-   - [About](about/README.md)
+   - [User Guide](guides/user.md)
+   - [Developer Guide](guides/dev.md)
 
 ## Project layout
 
@@ -37,18 +37,6 @@ If you want to learn more about Scistream, please take a look at our [HPDC'22 pa
       test_s2cs.py      # pytest tests
       ...               # other tests
 
-### Service
-      The protocol should enable high-speed, memory-to-memory data streaming in scientific environments
-      by establishing streaming data channels between two remote facilities using our reference architecture:
-
-      ![alt text](figures/simple-arch.png "SciStream architecture")
-
-      Buffer-and-forward elements are run at the Science DMZ to create bridges between the Ethernet-based WAN and HPC interconnets where data producers/consumers may reside.
-
-### Software components
-      * **SciStream Data Server (S2DS):** software that runs on gateway nodes. It acts as a buffer-and-forward agent.
-      * **SciStream User Client (S2UC):** software that the end user and/or workflow engines/tools acting on behalf of the user interact with and provide relevant information (e.g., ID of a HPC job, ID of an experiment or data acquisition job on a scientific instrument, shared secret for secure communication with the user job (application) at the producer and consumer) to orchestrate end-to-end data streaming.
-      * **SciStream Control Server (S2CS):** a software running on one of the gateway nodes. It interacts with S2UC, data producer/consumer and S2DS.
 
 ### Environment
       * S2UC communicates with producer/consumer S2CS over a private LAN/WAN or the Internet

@@ -97,8 +97,12 @@ def get_access_token(scope_id):
         _cache[scope_id] = "INVALID_TOKEN"
         return "INVALID_TOKEN"
     if not tokens:
+        _cache[scope_id] = "INVALID_TOKEN"
+        return "INVALID_TOKEN"
         raise UnauthorizedError()
     if scope_id not in tokens:
+        _cache[scope_id] = "INVALID_TOKEN"
+        return "INVALID_TOKEN"
         raise UnauthorizedError()
     auth_data = tokens[scope_id]
     if auth_data and 'access_token' in auth_data:

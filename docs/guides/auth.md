@@ -1,4 +1,16 @@
 # Auth
+
+Right now, In the authentication we support the following features:
+
+1. Successful request with no credentials
+2. Failed request when no client credentials are provided but server requests credentials
+3. Successfull when client provides credentials and server requires authentication
+4. Client provides credentials but failed due to IP lookup
+5. Failed request when incorrect credentials are provided
+6. Logging in and sending requests to multiple control servers
+
+The commands used and outputs are described below.
+
 ## Scistream Client Authentication Workflow
 
 Let's start from a clean slate by performing a logout:
@@ -258,4 +270,27 @@ scope_map={
 }
 ```
 
-#### Multiple S2DS
+## How to create scopes:
+
+CLIENT_ID="92c36fec-6d3c-41f6-a487-dfda1281c4e5"
+CLIENT_SECRET="oDU3/7WgwFU8nAX+Mtsnb4X6UeHBv7KJsA37U1xw6XQ="
+
+curl -s -u "$CLIENT_ID:$CLIENT_SECRET" -H \
+    'Content-Type: application/json' \
+    -X POST https://auth.globus.org/v2/api/clients/$CLIENT_ID/scopes \
+    -d '{
+        "scope": {
+            "name": "Scistream Operations",
+            "description": "All Operations on Scistream",
+            "scope_suffix": "scistream",
+            "dependent_scopes": [
+                    {
+                        "optional": false,
+                        "requires_refresh_token": true,
+                        "scope": "73320ffe-4cb4-4b25-a0a3-83d53d59ce4f"
+                    }
+                ],
+            "advertised": false,
+            "allow_refresh_tokens": true
+        }
+    }' | jq

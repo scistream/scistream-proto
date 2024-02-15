@@ -3,13 +3,12 @@ import fire
 import grpc
 import threading
 
-from proto import scistream_pb2
-from proto import scistream_pb2_grpc
+from .proto import scistream_pb2
+from .proto import scistream_pb2_grpc
 
 from concurrent import futures
-from s2ds import create_instance
-from utils import request_decorator, set_verbosity, authenticated
-import utils
+from .s2ds import create_instance
+from .utils import request_decorator, set_verbosity, authenticated
 from globus_action_provider_tools.authentication import TokenChecker
 
 class S2CSException(Exception):
@@ -148,6 +147,8 @@ def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False
         print("\nTerminating server")
         sys.exit(0)
 
+def main():
+    fire.Fire(start)
 
 if __name__ == '__main__':
-        fire.Fire(start)
+        main()

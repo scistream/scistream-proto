@@ -2,15 +2,15 @@ import click
 import grpc
 import uuid
 import time
-import utils
 import sys
-from appcontroller import AppCtrl
-from appcontroller import IperfCtrl
+from .appcontroller import AppCtrl
+from .appcontroller import IperfCtrl
 from concurrent import futures
 from globus_sdk import NativeAppAuthClient
 from globus_sdk.scopes import ScopeBuilder
-from proto import scistream_pb2
-from proto import scistream_pb2_grpc
+from .proto import scistream_pb2
+from .proto import scistream_pb2_grpc
+from . import utils
 
 @click.group()
 def cli():
