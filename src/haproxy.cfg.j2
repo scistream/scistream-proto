@@ -14,12 +14,12 @@ defaults
     timeout client  50000
     timeout server  50000
 
-frontend my_frontend
-    bind *:{{ local_port }}
-    default_backend my_backend
+{% for dst in dest_array %}
+frontend my_frontend_{{ loop.index }}
+    bind *:{{ local_ports[loop.index0] }}
+    default_backend my_backend_{{ loop.index }}
 
-backend my_backend
-    server my_server {{ remote_host }}:{{ remote_port }}
-{% if True %}
+backend my_backend_{{ loop.index }}
+    server my_server {{ dst }}
 
-{% endif %}
+{% endfor %}

@@ -8,8 +8,16 @@ import signal
 import time
 import socket
 import sys
+import ipaddress
 from proto import scistream_pb2
 from proto import scistream_pb2_grpc
+
+def valid_ip(ip):
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
 
 class AppCtrl():
     def __init__(self, uid, role, s2cs, access_token, controller_ip="127.0.0.1"):
@@ -23,7 +31,9 @@ class AppCtrl():
         retry_count = 0
         if role == "PROD":
             ##LEARN DEFINE which IP address will teh producer listen for connection requests
-            request.prod_listeners.extend([f'{controller_ip}:7000', f'{controller_ip}:17000', f'{controller_ip}:27000', f'{controller_ip}:37000', f'{controller_ip}:47000'])
+            if not valid_ip(controller_ip):
+                sys.exit("AppCtrl: controller_ip not valid try again")
+            request.prod_listeners.extend([f'{controller_ip}:5074', f'{controller_ip}:5075', f'{controller_ip}:5076', f'{controller_ip}:37000', f'{controller_ip}:47000'])
         with grpc.insecure_channel(s2cs) as channel:
             s2cs = scistream_pb2_grpc.ControlStub(channel)
             request.role = role
@@ -84,6 +94,10 @@ class IperfCtrl(AppCtrl):
                 self.response.listeners[0]
                 ]
             )
+
+class MockCtrl(AppCtrl):
+    def start_app(self, role):
+        pass
 
 class ProducerApplication():
     def __init__(self, port):
@@ -183,6 +197,16 @@ def iperf_client(target):
 @click.argument('controller_ip', type=str, default="127.0.0.1")
 def create_appctrl(uid, s2cs, access_token, role, controller_ip):
     app_ctrl_instance = IperfCtrl(uid, role, s2cs, access_token, controller_ip)
+    click.echo(f"Created IperfCtrl instance")
+
+@cli.command()
+@click.argument('uid', type=str)
+@click.argument('s2cs', type=str, default='localhost:5000')
+@click.argument('access_token', type=str)
+@click.argument('role', type=str)
+@click.argument('controller_ip', type=str, default="127.0.0.1")
+def mock(uid, s2cs, access_token, role, controller_ip):
+    app_ctrl_instance = MockCtrl(uid, role, s2cs, access_token, controller_ip)
     click.echo(f"Created IperfCtrl instance")
 
 if __name__ == '__main__':

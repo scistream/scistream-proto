@@ -26,6 +26,13 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.client_id = client_id
         self.client_secret = client_secret
         self.type = type
+        # Moving checker instantiation to the begginning, this was making the request take too long
+        if self.client_secret != "":
+            self.checker = TokenChecker(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                expected_scopes=[f"https://auth.globus.org/scopes/{self.client_id}/scistream"]
+                )
         set_verbosity(self, verbose)
 
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
@@ -111,16 +118,23 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return AppResponse
 
     def validate_creds(self, access_token):
-        scope_string = f"https://auth.globus.org/scopes/{self.client_id}/scistream"
-        checker = TokenChecker(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            expected_scopes=[scope_string]
-            )
-        auth_state=checker.check_token(access_token)
+        auth_state=self.checker.check_token(access_token)
         return len(auth_state.identities) > 0
+        #return False
 
 def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False, client_id=default_cid, client_secret=default_secret):
+    """
+    Starts a gRPC implementation of Scistream server.
+
+    Args:
+        listener_ip (str): IP address on which the server listens. Defaults to '0.0.0.0'.
+        port (int): Port number on which the server listens. Defaults to 5000.
+        type (str): Specifies the type of server to start. Options are 'S2DS', 'Nginx', 'Haproxy'.
+                    'S2DS' is the default type.
+        v or verbose (bool): Enables basic verbosity. Defaults to False.
+        client_id (str): Client ID for authentication. Defaults to value of 'default_cid'.
+        client_secret (str): Client secret for authentication. Defaults to value of 'default_secret'.
+    """
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         servicer = S2CS(listener_ip, (v or verbose), type, client_id, client_secret)
