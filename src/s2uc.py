@@ -3,6 +3,7 @@ import grpc
 import uuid
 import time
 import utils
+import sys
 from appcontroller import AppCtrl
 from appcontroller import IperfCtrl
 from concurrent import futures
@@ -19,6 +20,18 @@ linkprompt = "Please authenticate with Globus here"
 def get_client():
     return NativeAppAuthClient('4787c84e-9c55-4881-b941-cb6720cea11c')
 # TODO Create configuration subsystem instead of hardcoding CLIENT ID values
+def get_scope_id(s2cs):
+    scope_map={
+        "10.16.42.61": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "10.16.41.12": "26c25f3c-c4b7-4107-8a25-df96898a24fe",
+        "10.16.42.31": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "localhost": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "127.0.0.1": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8"
+    }
+    ip = s2cs.split(":")[0]
+
+    return scope_map.get(ip, "")
+    ## When IP is not found error silently, maybe not desirable
 
 @cli.command()
 @click.option('--scope', default="c42c0dac-0a52-408e-a04f-5d31bfe0aef8")
@@ -34,10 +47,13 @@ def login(scope):
     given access code from the web to the CLI.
     """
     adapter = utils.storage_adapter()
-
-    if adapter.get_by_resource_server():
-        click.echo("You are already logged in!")
+    try:
+        tokens= utils.get_access_token(scope)
+        click.echo("You are already logged in, to try different credentials please log out!")
         return
+    except utils.UnauthorizedError:
+        click.echo("To obtain token for the scope, please open the URL in your browser and follow the instructions")
+
     auth_client = get_client()
     StreamScopes = ScopeBuilder(scope, known_url_scopes=["scistream"])
     auth_client.oauth2_start_flow(requested_scopes=[StreamScopes.scistream], refresh_tokens=True)
@@ -50,6 +66,19 @@ def login(scope):
     auth_code = click.prompt("Enter the resulting Authorization Code here").strip()
     tkn=auth_client.oauth2_exchange_code_for_tokens(auth_code)
     adapter.store(tkn)
+
+@cli.command()
+@click.option('--ip', default=None, help='IP address to fetch the scope and then get the access token.')
+@click.option('--scope', default="c42c0dac-0a52-408e-a04f-5d31bfe0aef8", help='Directly provide the scope to get the access token.')
+def check_auth(ip, scope):
+    """
+    Displays globus credentials for a given ip or scope.
+    """
+    if ip:
+        scope = get_scope_id(ip)
+    if scope:
+        token = utils.get_access_token(scope)
+        click.echo(f"Access Token for scope '{scope}': {token}")
 
 @cli.command()
 def logout():
@@ -68,7 +97,7 @@ def logout():
         adapter.remove_tokens_for_resource_server(rs)
     click.echo("Successfully logged out!")
 
-
+#TODO update
 @cli.command()
 @click.argument('uid', type=str, required=True)
 @click.option('--producer-s2cs', default="localhost:5000")
@@ -194,22 +223,24 @@ def request2(num_conn, rate, s2cs, access_code):
 @click.option('--num_conn', type=int, default=5)
 @click.option('--rate', type=int, default=10000)
 @click.option('--s2cs', default="localhost:5000")
-def prod_req(num_conn, rate, s2cs):
+@click.option('--mock', default=False)
+def prod_req(num_conn, rate, s2cs, mock):
     with grpc.insecure_channel(s2cs) as channel:
         prod_stub = scistream_pb2_grpc.ControlStub(channel)
-        uid = str(uuid.uuid1())
-        click.echo("uid; role; s2cs; access_token")
-        click.echo(f"{uid} {s2cs} {utils.get_access_token()} PROD")
+        uid = str(uuid.uuid1()) if not mock else "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3"
+        click.echo("uid; s2cs; access_token; role")
+        scope_id = get_scope_id(s2cs)
+        click.echo(f"{uid} {s2cs} {utils.get_access_token(scope_id)} PROD")
         with futures.ThreadPoolExecutor(max_workers=2) as executor:
             click.echo("waiting for hello message")
-            prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate)
+            prod_resp_future = executor.submit(client_request, prod_stub, uid, "PROD", num_conn, rate, scope_id=scope_id)
             prod_resp = prod_resp_future.result()
         print(prod_resp)  # Should this be printed?
         # Extracting listeners
         prod_lstn = prod_resp.listeners
         prod_app_lstn = prod_resp.prod_listeners
         # Update the prod_stub
-        update(prod_stub, uid, prod_resp.prod_listeners)
+        update(prod_stub, uid, prod_resp.prod_listeners, scope_id=scope_id)
         print(prod_resp.listeners)
 
 @cli.command()
@@ -221,17 +252,22 @@ def prod_req(num_conn, rate, s2cs):
 def cons_req(num_conn, rate, s2cs, uid, prod_lstn):  # uid and prod_lstn are dependencies from PROD context
     with grpc.insecure_channel(s2cs) as channel:
         cons_stub = scistream_pb2_grpc.ControlStub(channel)
-        click.echo(f"{uid} {s2cs} {utils.get_access_token()} CONS")
+        scope_id = get_scope_id(s2cs)
+        click.echo(f"{uid} {s2cs} {utils.get_access_token(scope_id)} CONS")
         with futures.ThreadPoolExecutor(max_workers=2) as executor:
-            cons_resp_future = executor.submit(client_request, cons_stub, uid, "CONS", num_conn, rate)
+            cons_resp_future = executor.submit(client_request, cons_stub, uid, "CONS", num_conn, rate, scope_id=scope_id)
             cons_resp = cons_resp_future.result()
         cons_lstn = cons_resp.listeners
         # Update the cons_stub
-        update(cons_stub, uid, [prod_lstn])  # prod_lstn is a dependency from PROD context
+        if ',' in prod_lstn:
+            listener_array = prod_lstn.split(',')
+        else:
+            listener_array = [prod_lstn]
+        update(cons_stub, uid, listener_array, scope_id=scope_idexit)  # prod_lstn is a dependency from PROD context
 
 
 @utils.authorize
-def client_request(stub, uid, role, num_conn, rate, metadata=None):
+def client_request(stub, uid, role, num_conn, rate, scope_id="", metadata=None):
     try:
         print("started client request")
         request = scistream_pb2.Request(uid=uid, role=role, num_conn=num_conn, rate=rate)
@@ -239,12 +275,13 @@ def client_request(stub, uid, role, num_conn, rate, metadata=None):
         return response
     except grpc.RpcError as e:
         if e.code() == grpc.StatusCode.UNAUTHENTICATED:
-            click.ClickException(f"Authentication error for server scope, please obtain new credentials: {e.details()}")
+            click.echo(f"Please obtain new credentials: {e.details()}")
+            sys.exit(1)
         else:
-            click.ClickException(f"Another GRPC error occurred: {e.details()}")
+            click.echo(f"Another GRPC error occurred: {e.details()}")
 
 @utils.authorize
-def update(stub, uid, remote_listeners, metadata=None):
+def update(stub, uid, remote_listeners, scope_id="", metadata=None):
     try:
         update_request = scistream_pb2.UpdateTargets(uid=uid, remote_listeners=remote_listeners)
         stub.update(update_request, metadata=metadata)

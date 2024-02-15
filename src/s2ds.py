@@ -2,6 +2,10 @@ import os
 import logging
 import subprocess
 from pathlib import Path
+import requests
+import json
+import time
+import urllib3
 
 class S2DSException(Exception):
     pass
@@ -58,8 +62,9 @@ class S2DS():
 import docker
 from jinja2 import Environment, FileSystemLoader
 
-class Haproxy():
-    def __init__(self):
+class ProxyContainer():
+    def __init__(self, docker_plugin_type="default"):
+        self.docker_plugin_type = docker_plugin_type
         pass
 
     def release(self, entry):
@@ -67,93 +72,112 @@ class Haproxy():
 
     def start(self, num_conn, listener_ip):
         ##STOP hardcoding port 5001
-        self.local_port= "5001"
-        entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:{self.local_port}"]}
+        #self.local_ports = [5064 + i for i in range(num_conn)]
+        self.local_ports = [5074, 5075, 5076, 6000, 6001]
+        entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:{port}" for port in self.local_ports]}
         return entry
 
     def update_listeners(self, listeners, s2ds_proc):
-        remote_host, remote_port = listeners[0].split(":")
+        if self.docker_plugin_type == "default":
+           docker_client = DockerPlugin()
+        if self.docker_plugin_type == "janus":
+           docker_client = JanusPlugin()
+        if self.docker_plugin_type == "dockersock":
+           docker_client = DockerSockPlugin()
         vars = {
-            'local_port': self.local_port,
-            'remote_host': remote_host,
-            'remote_port': remote_port,
+            'local_ports': self.local_ports,
+            'dest_array': listeners
         }
         # Load the Jinja2 environment and get the template
         env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
-        template = env.get_template(f'haproxy.cfg.j2')
-        # Render the template to create the HAProxy configuration file
+        template = env.get_template(f'{self.cfg_filename}.j2')
+        # Render the template to create the configuration file
         #renders file to a slightly different location
-        with open(f'{Path(__file__).parent}/haproxy.cfg', 'w') as f:
+        with open(f'{Path(__file__).parent}/{self.cfg_filename}', 'w') as f:
             f.write(template.render(vars))
-
-        # Connect to Docker
-        client = docker.from_env()
-
-        # Define the HAProxy container configuration
+        # Define the container configuration
         container_config = {
-            'image': 'haproxy:latest',
-            'name': 'myhaproxy',
+            'image': self.image_name ,
+            'name': self.container_name,
             'detach': True,
-            'volumes': {f'{Path(__file__).parent}/haproxy.cfg': {'bind': '/usr/local/etc/haproxy/haproxy.cfg', 'mode': 'ro'}},
+            'volumes': {f"{Path(__file__).parent}/{self.cfg_filename}": {'bind': self.cfg_location, 'mode': 'ro'}},
             'network_mode': 'host'
         }
         # Start the HAProxy container
-        name= "myhaproxy"
+        name = self.container_name
+        docker_client.start(name, container_config)
+
+class Haproxy():
+    def __init__(self, docker_plugin_type="default"):
+        self.docker_plugin_type = docker_plugin_type
+        self.cfg_location = '/usr/local/etc/haproxy/haproxy.cfg'
+        self.image_name = 'haproxy:latest'
+        self.container_name = "myhaproxy"
+        self.cfg_filename = 'haproxy.cfg'
+        if self.docker_plugin_type == "dockersock":
+           self.cfg_filename = "/data/scistream-demo/configs/haproxy.cfg"
+
+        pass
+
+class Nginx(ProxyContainer):
+    def __init__(self, docker_plugin_type="default"):
+        self.docker_plugin_type = docker_plugin_type
+        self.cfg_location = '/etc/nginx/nginx.conf'
+        self.image_name = 'nginx:latest'
+        self.container_name = "mynginx"
+        self.cfg_filename = f'nginx.conf'
+        if self.docker_plugin_type == "dockersock":
+           self.cfg_filename = "/data/scistream-demo/configs/nginx.conf"
+
+        pass
+class Janus(Haproxy):
+    def __init__(self):
+        self.docker_plugin_type = "janus"
+
+class DockerSock(Haproxy):
+    def __init__(self):
+        self.docker_plugin_type = "dockersock"
+
+class DockerPlugin():
+    def __init__(self):
+        self.client = docker.from_env()
+
+    def start(self, name, container_config):
         try:
-            container = client.containers.get(name)
+            container = self.client.containers.get(name)
             print(f'Container {name} already exists')
             container.restart()
         except docker.errors.NotFound:
             print(f'Creating container {name}')
-            container = client.containers.run(**container_config)
+            container = self.client.containers.run(**container_config)
+        print(f'Started container with ID {container.id}')
 
-        print(f'Started HAProxy container with ID {container.id}')
-
-class Nginx():
+class DockerSockPlugin(DockerPlugin):
     def __init__(self):
-        pass
+        self.client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
-    def release(self, entry):
-        pass
+class JanusPlugin():
+    def __init__(self):
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        self.auth = ('admin', 'admin')# update this
 
-    def start(self, num_conn, listener_ip):
-        entry={"s2ds_proc":[], "listeners":["127.0.0.1:5002"]}
-        return entry
-
-    def update_listeners(self, listeners, s2ds_proc):
-        remote_host, remote_port = listeners[0].split(":")
-        local_port=5002
-        vars = {
-            'local_port': local_port,
-            'remote_host': remote_host,
-            'remote_port': remote_port,
-        }
-        # Load the Jinja2 environment and get the template
-        env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
-        template = env.get_template(f'nginx.conf.j2')
-        # Render the template to create the NGINX configuration file
-        with open('nginx.conf', 'w') as f:
-            f.write(template.render(vars))
-
-        # Connect to Docker
-        client = docker.from_env()
-
-        # Define the NGINX container configuration
-        container_config = {
-            'image': 'nginx:latest',
-            'name': 'mynginx',
-            'detach': True,
-            'ports': {f'{local_port}/tcp':local_port},
-            'volumes': {f'{Path(__file__).parent}/nginx.conf': {'bind': '/etc/nginx/nginx.conf', 'mode': 'ro'}},
-            'network': 'mynetwork',
-        }
-        # Start the NGINX container
-        name= "mynginx"
-        try:
-            container = client.containers.get(name)
-            print(f'Container {name} already exists')
-        except docker.errors.NotFound:
-            print(f'Creating container {name}')
-            container = client.containers.run(**container_config)
-
-        print(f'Started NGINX container with ID {container.id}')
+    def start(name, container_config):
+        ## check if a container exists
+        active_session = requests.put(url='https://nersc-srv-1.testbed100.es.net:5000/api/janus/controller/active', auth=self.auth, verify=False)
+        if len(active_session.json()) == 0:
+            ## create container
+            response = requests.post(url="https://nersc-srv-1.testbed100.es.net:5000/api/janus/controller/create", auth = self.auth, json={"errors":[],"instances":["nersc-dtnaas-1"],"image":"haproxy:latest","profile":"scistream-demo","arguments":"","kwargs":{"USER_NAME":"","PUBLIC_KEY":""},"remove_container":"None"}, verify=False)
+            assert response.status_code == 200
+            session_id = list(json.loads(response.text).keys())[0]
+            print("JANUS CONTAINER DOESNT EXIST")
+        else:
+            session_id = active_session.json()[0]['id']
+            print("JANUS CONTAINER EXIST")
+        print(f"SESSION_ID = {session_id}")
+        ## Container exists, now update config stop and start
+        cfg= Path(__file__).parent / "haproxy.cfg"
+        dest_path = Path("/data/scistream-demo/configs/haproxy.cfg")
+        os.system(f'cp {cfg} {dest_path}')
+        ## This assumes we are running this code in the same location as the docker platform
+        stop_response = requests.put(url=f'https://nersc-srv-1.testbed100.es.net:5000/api/janus/controller/stop/{session_id}', auth=self.auth, verify=False)
+        start_response = requests.put(url=f'https://nersc-srv-1.testbed100.es.net:5000/api/janus/controller/start/{session_id}', auth=self.auth, verify=False)

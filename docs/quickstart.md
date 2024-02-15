@@ -1,4 +1,5 @@
-# SciStream Control Protocol
+# Quickstart
+## SciStream Control Protocol
 The SciStream protocol attempts to tackle the problem of enabling high-speed,
 memory-to-memory data streaming in scientific environments.
 This task is particularly challenging because data producers
@@ -9,9 +10,9 @@ Furthermore, either producers, consumers, or both may lack external network conn
 If you want to learn more, please take a look at our [HPDC'22 paper](https://dl.acm.org/doi/abs/10.1145/3502181.3531475).
 
 ## Pre-requisites
-We use [poetry](https://python-poetry.org/docs/) to manage our python environments. Please ensure you have Python 3.9+ and poetry installed in your environment.
+We use [poetry](https://python-poetry.org/docs/) to manage our python environments. Please ensure you have Python 3.9+ and poetry installed in your environment. We require docker for using the Haproxy and NGINX S2DS implementation. We provide a setup scrit that was used to install these dependencies on the Fabric platform. This installation script was tested on ubuntu 20.04 version.
 
-We also use a Git submodules to manage dependencies, such as the SciStream project. To set up the SciStream Data Server (S2DS) submodule, run the following commands:
+We also use a Git submodules to manage dependencies, such as the original S2DS implementation project. To set up the SciStream Data Server (S2DS) submodule, run the following commands:
 
 ~~~
 git submodule init
@@ -23,9 +24,10 @@ cd ../../
 
 This process initializes, updates, and compiles the submodule, streamlining your project setup and ensuring compatibility with the latest version of the parent project.
 
+
 ## Quick Start
 
-The following commands download and installs all the necessary python dependencies. It also activates the virtual environment.
+Once you have the dependencies the following commands download and installs all the necessary python dependencies. It also activates the virtual environment.
 
 ~~~
 poetry install
@@ -52,6 +54,7 @@ tests/test_s2cs.py .x....                                                       
 ===================================== 5 passed, 1 xfailed in 5.81s ======================================
 ~~~
 
+Once this runs all the
 ## Tutorial
 
 ### Authentication
@@ -74,9 +77,9 @@ You will see a URL. You need to open the url provided in a web browser, log in w
 ~~~
 (scistream-proto-py3.9) bash-3.2$ python src/s2uc.py login
 Please authenticate with Globus here:
-------------------------------------
+```------------------------------------
 https://auth.globus.org/v2/oauth2/authorize?client_id=4787c84e-9c55-a11c&redirect_uri=https%3A%2F%2Fauth.globus.org=login
-------------------------------------
+------------------------------------```
 
 Enter the resulting Authorization Code here:
 ~~~
@@ -90,8 +93,14 @@ To understand the behavior of the code let's simulate the environment by opening
 To run this you will need to open multiple terminals:
 
 ~~~
-python src/s2cs.py start --port=5000 --listener-ip=127.0.0.1
-python src/s2uc.py request1
+python src/s2cs.py --port=5000 --listener-ip=10.133.137.2 --verbose --type=Haproxy
+python src/s2uc.py prod-req --s2cs 10.133.137.2:5000
+
+python src/appcontroller.py create-appctrl cac92bb0-7345-11ee-9876-bff742c41932 10.130.134.2:5000 AgpQoBo1VvvYkz8yYxyQgkgrW7nobYmG6dno8q8rgKG9MMYDM2IvCjgEezy8mqJpqvMl44GDq5GKayTyvkXn4fdmoB2 PROD 10.133.139.2
+
+python src/s2uc.py cons-req --s2cs 10.130.134.2:5000 cac92bb0-7345-11ee-9876-bff742c41932 10.133.137.2:5001
+
+python src/appcontroller.py create-appctrl cac92bb0-7345-11ee-9876-bff742c41932 10.130.134.2:5000 AgpQoBo1VvvYkz8yYxyQgkgrW7nobYmG6dno8q8rgKG9MMYDM2IvCjgEezy8mqJpqvMl44GDq5GKayTyvkXn4fdmoB2 CONS 10.130.133.2
 ~~~
 
 Several things will happen in the background to learn more please review the code. The output of the client should look like this:
@@ -131,46 +140,29 @@ Make sure that you start the poetry environment with the correct python version
 
 ## Specification
 
-### Service
-The protocol should enable high-speed, memory-to-memory data streaming in scientific environments
-by establishing streaming data channels between two remote facilities using our reference architecture:
+## Authentication
 
-![alt text](figures/simple-arch.png "SciStream architecture")
+How to create scopes:
 
-Buffer-and-forward elements are run at the Science DMZ to create bridges between the Ethernet-based WAN and HPC interconnets where data producers/consumers may reside.
+CLIENT_ID="92c36fec-6d3c-41f6-a487-dfda1281c4e5"
+CLIENT_SECRET="oDU3/7WgwFU8nAX+Mtsnb4X6UeHBv7KJsA37U1xw6XQ="
 
-### Software components
-* **SciStream Data Server (S2DS):** software that runs on gateway nodes. It acts as a buffer-and-forward agent.
-* **SciStream User Client (S2UC):** software that the end user and/or workflow engines/tools acting on behalf of the user interact with and provide relevant information (e.g., ID of a HPC job, ID of an experiment or data acquisition job on a scientific instrument, shared secret for secure communication with the user job (application) at the producer and consumer) to orchestrate end-to-end data streaming.
-* **SciStream Control Server (S2CS):** a software running on one of the gateway nodes. It interacts with S2UC, data producer/consumer and S2DS.
-
-### Environment
-* S2UC communicates with producer/consumer S2CS over a private LAN/WAN or the Internet
-* S2CS and S2DS communicate over a LAN
-* Messages can be lost or corrupted
-
-### Vocabulary of Messages
-* **Requests:** { REQ, ReqListeners }
-* **Responses:** { RESP, ProdLstn }
-* **Commands:** { StartLstn, Hello, UpdateTargets, StartConn, Connect, REL }
-
-### Procedure Rules (Informal)
-0. The user selects producer and consumer facilities, and authenticates with them via S2UC.
-1. S2UC establishes an authenticated connection to (both producer and consumer) S2CS, and sends the “user request” (REQ) for the streaming job (which contains unique-id, protocol, number of connections, streaming rate, producer address and consumer address)
-2. S2CS requests num_conn ports from S2DS, whom reserves num_conn ports on gateway nodes depending on availability
-3. Both producer and consumer S2CS send connection information (i.e., IP addresses and ports) for data connections to S2UC
-4. When ProdApp starts, it connects to producer S2CS and presents the “unique-id” and set of port listeners
-5. Prod S2CS forwards set of port listeners to S2UC
-6. S2UC creates connection map and data connection credentials, and sends them to both producer and consumer S2CS
-7. Both producer and consumer S2DS create bridges between Prod/Cons App and the WAN (i.e., start buffer-and-forward elements)
-8. ConsApp establishes num_conn data streaming channels
-9. Both S2DS use data connection credentials to establish external (WAN) streaming channel
-10. ProdApp starts streaming task
-
-### Collaboration Diagram
-
-![alt text](figures/collaboration-diagram.png "SciStream collaboration diagram")
-
-### Sequence Diagram
-
-![alt text](figures/scistream-protocol-simple.png "SciStream sequence diagram")
+curl -s -u "$CLIENT_ID:$CLIENT_SECRET" -H \
+    'Content-Type: application/json' \
+    -X POST https://auth.globus.org/v2/api/clients/$CLIENT_ID/scopes \
+    -d '{
+        "scope": {
+            "name": "Scistream Operations",
+            "description": "All Operations on Scistream",
+            "scope_suffix": "scistream",
+            "dependent_scopes": [
+                    {
+                        "optional": false,
+                        "requires_refresh_token": true,
+                        "scope": "73320ffe-4cb4-4b25-a0a3-83d53d59ce4f"
+                    }
+                ],
+            "advertised": false,
+            "allow_refresh_tokens": true
+        }
+    }' | jq
