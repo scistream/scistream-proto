@@ -2,14 +2,16 @@
 
 ### Installation
 
+[Click here to download Scistream](dist/scistream_proto-0.1.5-py3-none-any.whl)
+
 ~~~
-pip install scistream
+pip install scistream_proto-0.1.5-py3-none-any.whl
 ~~~
 
 ### Start Control server
 
 ~~~
-$ python src/s2cs.py --verbose
+$ s2cs -t Haproxy --verbose
 Server started on 0.0.0.0:5000
 ~~~
 
@@ -30,4 +32,4 @@ started client request
 $ appctrl mock 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 localhost:5000 INVALID_TOKEN PROD 10.0.0.1
 ~~~
 
-For further details please check the 
+For further details please check the
