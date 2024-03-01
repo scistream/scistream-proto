@@ -96,7 +96,6 @@ class ProxyContainer():
         with open(f'{Path(__file__).parent}/{self.cfg_filename}', 'w') as f:
             f.write(template.render(vars))
         # Define the container configuration
-        print(f"{Path(__file__).parent}/{self.cfg_filename}")
         container_config = {
             'image': self.image_name ,
             'name': self.container_name,
@@ -108,6 +107,7 @@ class ProxyContainer():
         name = self.container_name
         docker_client.start(name, container_config)
 
+
 class Haproxy(ProxyContainer):
     def __init__(self, docker_plugin_type="default"):
         self.docker_plugin_type = docker_plugin_type
@@ -117,7 +117,6 @@ class Haproxy(ProxyContainer):
         self.cfg_filename = 'haproxy.cfg'
         if self.docker_plugin_type == "dockersock":
            self.cfg_filename = "/data/scistream-demo/configs/haproxy.cfg"
-
         pass
 
 class Nginx(ProxyContainer):
