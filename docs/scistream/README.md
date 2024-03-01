@@ -2,7 +2,7 @@
 
 SciStream system in which participating scientific facilities (typically in independent administrative domains) make their resources available through programmatic interfaces to enable wide-area streaming analysis. The SciStream architecture relies on gateway nodes (GNs) and control protocols to create on-demand proxies between an instrument’s LAN and the WAN as shown in Figure 1a.
 
-![figure 1a](figures/figure1a.png "Figure 1a")
+![figure 1a](../figures/figure1a.png "Figure 1a")
 
 SciStream’s use of proxies at the transport layer ensures that the architecture is agnostic of streaming application libraries and implementations.
 

@@ -2,7 +2,7 @@
 
 Welcome to the Scistream Documentation. As in the case with any on-going project, these docs may fall out of sync with the project, but we’ll try our best to keep them accurate.
 
-![Scientific Instrument needs to connect to analysis compute cluster in a different institution](figures/simple-arch.png "Scistream Architecture")
+![Scientific Instrument needs to connect to analysis compute cluster in a different institution](figures/scistream-arch.png "Scistream Architecture")
 
 Scistream is a framework and toolkit that attempts to tackle the problem of enabling high-speed(+100Gbps), memory-to-memory data streaming in scientific environments. This task is particularly challenging because data producers (e.g., data acquisition applications on scientific instruments, simulations on supercomputers) and consumers (e.g., data analysis applications) may be in different institutions (security domains) and thus require bridging of those domains. Furthermore, either producers, consumers, or both may lack external network connectivity and thus require traffic forwarding proxies.
 
