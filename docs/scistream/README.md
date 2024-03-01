@@ -14,7 +14,7 @@ SciStream has three software components that participate in the control protocol
 * SciStream User Client (S2UC)
 * SciStream Control Server (S2CS)
 
-![figure 1b](figures/figure1a.png "Figure 1b")
+![figure 1b](../figures/figure1a.png "Figure 1b")
 
 #### SciStream Data Server (S2DS)
 
@@ -45,11 +45,11 @@ The SciStream protocol was designed to establish authenticated and transparent e
 
 This process is facilitated by a centralized controller, S2UC, which interacts with both applications and their respective facility control servers (S2CS) to manage the streaming setup. The protocol ensures that the necessary resources are allocated, and the streaming paths are configured to enable data transfer between the producer and consumer applications.
 
-![Scistream complete protocol](figures/scistream-control-protocol.png "Scistream complete protocol")
+![Scistream complete protocol](../figures/scistream-control-protocol.png "Scistream complete protocol")
 
 Below we provide a summarized description of the protocol for complete detail please refer to our [HPDC'22 paper](https://dl.acm.org/doi/abs/10.1145/3502181.3531475).
 
-![Scistream simplified protocol](figures/simplified.png "Scistream simplified protocol")
+![Scistream simplified protocol](../figures/simplified.png "Scistream simplified protocol")
 
 ##### Request Submission
 The user initiates a connection by submitting a detailed request to S2UC, which includes connection information, required bandwidth, and authentication.
