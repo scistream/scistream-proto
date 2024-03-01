@@ -14,7 +14,7 @@ SciStream has three software components that participate in the control protocol
 * SciStream User Client (S2UC)
 * SciStream Control Server (S2CS)
 
-![figure 1b](../figures/figure1a.png "Figure 1b")
+![figure 1b](../figures/figure1b.png "Figure 1b")
 
 #### SciStream Data Server (S2DS)
 
