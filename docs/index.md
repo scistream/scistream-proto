@@ -61,10 +61,10 @@ If you want to learn more about Scistream, please check the ["What is Scistream"
       9. Both S2DS use data connection credentials to establish external (WAN) streaming channel
       10. ProdApp starts streaming task
 
-### Collaboration Diagram
+#### Collaboration Diagram
 
 ![alt text](figures/collaboration-diagram.png "SciStream collaboration diagram")
 
-### Sequence Diagram
+#### Sequence Diagram
 
 ![alt text](figures/scistream-protocol-simple.png "SciStream sequence diagram")
