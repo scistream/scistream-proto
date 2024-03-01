@@ -63,8 +63,8 @@ If you want to learn more about Scistream, please check the ["What is Scistream"
 
 ### Collaboration Diagram
 
-      ![alt text](figures/collaboration-diagram.png "SciStream collaboration diagram")
+![alt text](figures/collaboration-diagram.png "SciStream collaboration diagram")
 
 ### Sequence Diagram
 
-      ![alt text](figures/scistream-protocol-simple.png "SciStream sequence diagram")
+![alt text](figures/scistream-protocol-simple.png "SciStream sequence diagram")
