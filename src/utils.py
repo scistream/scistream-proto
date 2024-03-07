@@ -71,14 +71,34 @@ def authenticated(func):
     return decorated_function
 
 def authorize(func):
+    """
+    Gets access_token from scope_id and saves into the metadata field
+    The decorator is only used to make the code simpler to read
+    get_access_token is where the logic for storing and retrieving the access token is defined
+    """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         #print("started client authorization")
+        scope_id = get_scope_id(kwargs["s2cs"])
         kwargs['metadata'] = (
             ('authorization', f'{get_access_token(kwargs["scope_id"])}'),
         )
         return func(*args, **kwargs)
     return wrapper
+
+# TODO Create configuration subsystem instead of hardcoding CLIENT ID values
+def get_scope_id(s2cs):
+    scope_map={
+        "10.16.42.61": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "10.16.41.12": "26c25f3c-c4b7-4107-8a25-df96898a24fe",
+        "10.16.42.31": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "localhost": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "127.0.0.1": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8"
+    }
+    ip = s2cs.split(":")[0]
+
+    return scope_map.get(ip, "")
+    ## When IP is not found error silently, maybe not desirable
 
 def storage_adapter():
     from globus_sdk.tokenstorage import SQLiteAdapter
@@ -90,6 +110,9 @@ def storage_adapter():
 _cache={}
 
 def get_access_token(scope_id):
+    """
+    This logic needs to be throughly tested
+    """
     if scope_id in _cache:
         return _cache[scope_id]
     tokens = storage_adapter().get_by_resource_server()

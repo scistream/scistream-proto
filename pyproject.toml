@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scistream-proto"
-version = "0.1.5"
+version = "0.1.6"
 description = ""
 authors = ["Flavio Castro <fcastro@anl.gov>"]
 readme = "docs/quickstart.md"

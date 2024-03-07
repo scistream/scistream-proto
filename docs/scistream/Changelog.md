@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## Unreleased
+
+## [0.1.6]
 
 ### [Added]
 - Nginx config template can now setup multiple connections
@@ -12,3 +14,6 @@ All notable changes to this project will be documented in this file.
 ### [Bug]
 - Hardcoded app controller ports for pvapy tests[WIP]
 - Modified behavior of get_access_token(). This needs to be further tested [WIP]
+
+### [Removed]
+- Commands developed specifically for previous demos have been removed
