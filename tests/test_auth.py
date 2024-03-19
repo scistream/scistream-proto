@@ -30,6 +30,10 @@ def test_no_scope_id(clear_cache, mock_storage):
     mock_storage().get_by_resource_server.return_value = None
     assert utils.get_access_token("") == "INVALID_TOKEN"
 
+def test_no_tokens(clear_cache, mock_storage):
+    mock_storage().get_by_resource_server.return_value = None
+    assert utils.get_access_token("scope_id") == "INVALID_TOKEN"
+
 def test_scope_id_not_in_tokens(clear_cache, mock_storage):
     mock_storage().get_by_resource_server.return_value = {"different_scope_id": {"access_token": "VALID_TOKEN"}}
     with pytest.raises(utils.UnauthorizedError):
@@ -43,7 +47,7 @@ def test_no_auth_data_for_scope_id(clear_cache, mock_storage):
     mock_storage().get_by_resource_server.return_value = {"scope_id": {}}
     with pytest.raises(utils.UnauthorizedError):
         utils.get_access_token("scope_id")
-        
+
 def test_subsequent_calls_use_cached_token(clear_cache, mock_storage):
     ## In this case the cached token persists
     mock_storage().get_by_resource_server.return_value ={"scope_id": {"access_token": "VALID_TOKEN_1"}}

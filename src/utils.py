@@ -3,6 +3,7 @@ import time
 import logging
 import sys
 import traceback
+from pathlib import Path
 
 from globus_sdk.tokenstorage import SQLiteAdapter
 
@@ -13,6 +14,10 @@ class ValidationException(Exception):
     pass
 
 class UnauthorizedError(Exception):
+    ##
+    pass
+
+class UnauthenticatedException(Exception):
     ##
     pass
 
@@ -71,38 +76,66 @@ def authenticated(func):
     return decorated_function
 
 def authorize(func):
+    """
+    Authorize decorates a function and adds an authorization to the metadata header
+    It must include a variable s2cs or scope_id for this to work
+    it cannot support a function that has neither variables
+
+    The decorator is used to separate the authorization logic from the rest of the code
+    get_access_token is where the logic for storing and retrieving the access token is defined
+    """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        #print("started client authorization")
+        if "s2cs" in kwargs:
+            scope_id = get_scope_id(kwargs["s2cs"])
+        else:
+            scope_id = kwargs["scope_id"]
         kwargs['metadata'] = (
-            ('authorization', f'{get_access_token(kwargs["scope_id"])}'),
+            ('authorization', f'{get_access_token(scope_id)}'),
         )
         return func(*args, **kwargs)
     return wrapper
 
+# TODO Create configuration subsystem instead of hardcoding CLIENT ID values
+def get_scope_id(s2cs):
+    scope_map={
+        "10.16.42.61": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "10.16.41.12": "26c25f3c-c4b7-4107-8a25-df96898a24fe",
+        "10.16.42.31": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "localhost": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8",
+        "127.0.0.1": "c42c0dac-0a52-408e-a04f-5d31bfe0aef8"
+    }
+    ip = s2cs.split(":")[0]
+
+    return scope_map.get(ip, "")
+    ## When IP is not found error silently, maybe not desirable
+
 def storage_adapter():
+    ## .storage.db hides this file
+    ## maybe we should encrypt this?
+    ## maybe we should ensure this is stored in a place only certain users can access it
     from globus_sdk.tokenstorage import SQLiteAdapter
     if not hasattr(storage_adapter, "_instance"):
-        filename = "storage.db"
-        ## TODO Hardcoded must be changed in the future
+        filename = f".storage.db"
         storage_adapter._instance = SQLiteAdapter(filename)
     return storage_adapter._instance
 _cache={}
 
 def get_access_token(scope_id):
+    """
+    This logic needs to be throughly tested
+
+    Login, expects an exception when no scope is found.
+    """
     if scope_id in _cache:
         return _cache[scope_id]
     tokens = storage_adapter().get_by_resource_server()
-    if scope_id == "":
+    if scope_id == "" or not tokens:
+        # Assume authentication not required
         _cache[scope_id] = "INVALID_TOKEN"
         return "INVALID_TOKEN"
-    if not tokens:
-        _cache[scope_id] = "INVALID_TOKEN"
-        return "INVALID_TOKEN"
-        raise UnauthorizedError()
     if scope_id not in tokens:
-        _cache[scope_id] = "INVALID_TOKEN"
-        return "INVALID_TOKEN"
+        #Authentication missed
         raise UnauthorizedError()
     auth_data = tokens[scope_id]
     if auth_data and 'access_token' in auth_data:

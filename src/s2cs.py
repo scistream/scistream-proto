@@ -18,7 +18,7 @@ default_secret = ""
 
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
-    def __init__(self, listener_ip, verbose, type="S2DS", client_id=default_cid, client_secret=default_secret):
+    def __init__(self, listener_ip, verbose, type="Haproxy", client_id=default_cid, client_secret=default_secret):
         self.response = None
         self.resource_map = {}
         self.listener_ip = listener_ip
@@ -129,7 +129,7 @@ def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False
         listener_ip (str): IP address on which the server listens. Defaults to '0.0.0.0'.
         port (int): Port number on which the server listens. Defaults to 5000.
         type (str): Specifies the type of server to start. Options are 'S2DS', 'Nginx', 'Haproxy'.
-                    'S2DS' is the default type.
+                    'Haproxy' is the default type.
         v or verbose (bool): Enables basic verbosity. Defaults to False.
         client_id (str): Client ID for authentication. Defaults to value of 'default_cid'.
         client_secret (str): Client secret for authentication. Defaults to value of 'default_secret'.
