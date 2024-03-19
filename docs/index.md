@@ -10,7 +10,8 @@ For example, SciStream can enable real-time data analysis for synchrotron light 
 
 SciStream tackles these challenges by providing a middlebox-based architecture with control protocols that establish authenticated and transparent connections between the data producer and consumer, while efficiently bridging the different security domains. It integrates with existing authentication and authorization systems, such as Globus Auth, to ensure secure communication between the participating facilities.
 
-Key Features
+## Key Features
+
 - High-speed memory-to-memory data streaming (100Gbps+)
 - Bridging of security domains between scientific instruments and remote computing facilities
 - Integration with existing authentication and authorization systems (e.g., Globus Auth)
