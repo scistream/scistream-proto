@@ -36,4 +36,4 @@ $ appctrl mock 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 localhost:5000 INVALID_TOKEN
 ~~~
 s2uc release 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3
 ~~~
-For further details please check the complete user guide
+For further details please check the complete [User Guide](guides/user.md)

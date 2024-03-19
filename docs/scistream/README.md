@@ -1,10 +1,21 @@
 # What is Scistream?
 
-SciStream system in which participating scientific facilities (typically in independent administrative domains) make their resources available through programmatic interfaces to enable wide-area streaming analysis. The SciStream architecture relies on gateway nodes (GNs) and control protocols to create on-demand proxies between an instrument’s LAN and the WAN as shown in Figure 1a.
+SciStream system in which participating scientific facilities (typically in independent administrative domains) make their computing resources available through programmatic interfaces to enable wide-area streaming analysis. The SciStream architecture relies on gateway nodes (GNs) and control protocols to create on-demand proxies between an instrument’s LAN and the WAN as shown in Figure 1a.
 
 ![figure 1a](../figures/figure1a.png "Figure 1a")
 
 SciStream’s use of proxies at the transport layer ensures that the architecture is agnostic of streaming application libraries and implementations.
+
+### Motivation
+
+Many modern scientific workflows require real-time data analysis, reduction, feature detection, and experiment steering. However, achieving efficient and secure data streaming in practice is challenging due to the lack of direct external network connectivity for scientific instruments and the authentication and security requirements of high-performance computing (HPC) centers.
+
+## How SciStream Works
+
+1. The user authenticates with the participating facilities and requests a streaming job through the SciStream User Client (S2UC).
+2. The SciStream Control Servers (S2CS) at the producer and consumer facilities negotiate the connection details and allocate the necessary resources.
+3. The SciStream Data Servers (S2DS) establish authenticated and transparent connections between the data producer and consumer.
+4. The data producer streams data to the consumer through the SciStream infrastructure, enabling real-time analysis and visualization.
 
 ### Software components
 
@@ -39,6 +50,8 @@ to communicate with control elements of SciStream.
 Software running on the gateway nodes. It interacts with S2UC, Application controlers for data producer/consumer and S2DS. It authenticates the user and producer/consumer applications (using preshared keys). It manages gateway node resources and S2DS, including initiating, monitoring, and terminating S2DS
 processes. As of release 1.0 we support this through Docker.
 
+Allows authentication of user requests via Globus Auth integration. This is implemented using scopes, which of those is tied to an authentication entity.
+
 ## SciStream Control Protocol
 
 The SciStream protocol was designed to establish authenticated and transparent end-to-end data streaming connections between a data producer application (ProdAPP) at Facility 1 and a data consumer application (ConsAPP) at Facility 2.
@@ -63,4 +76,4 @@ The application controllers communicate with S2CS to provide connection details,
 ##### Request Release
 To release a request, the user submits a new request to S2UC with the unique ID of the request to be terminated, leading to the release of resources and termination of S2DS instances.
 
-Please proceed to our tutorials
+Please proceed to our [tutorials](../quickstart.md)
