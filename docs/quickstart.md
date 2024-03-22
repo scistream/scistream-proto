@@ -2,10 +2,10 @@
 
 ### Installation
 
-[Click here to download Scistream](dist/scistream_latest.whl)
+[Click here to download Scistream](dist/scistream_proto-0.2.0-py3-none-any.whl)
 
 ~~~
-pip install scistream_proto-0.1.5-py3-none-any.whl
+pip install scistream_proto-0.2.0-py3-none-any.whl
 ~~~
 
 ### Start Control server
