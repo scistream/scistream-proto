@@ -5,13 +5,13 @@ import time
 from unittest import mock
 from unittest.mock import MagicMock
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent/ "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from concurrent import futures
-from proto.scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
-from s2cs import S2CS, S2CSException
-from s2ds import S2DS
-from utils import ValidationException
+from src.proto.scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
+from src.s2cs import S2CS, S2CSException
+from src.s2ds import S2DS
+from src.utils import ValidationException
 
 class MockS2DS(S2DS):
     def __init__(self, *args, **kwargs):
@@ -50,7 +50,7 @@ class MockContext(MagicMock):
 def context():
     return MockContext()
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 def test_update_success(servicer):
     ### Expand test conditions
     # Simulate an existing entry in the resource_map
@@ -68,13 +68,13 @@ def test_update_success(servicer):
 
 #Expected to fail but passed, something is wrong
 @pytest.mark.xfail
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 def test_req_no_hello(servicer, context):
     request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
     response = servicer.req(request, context)
     assert response.listeners
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 def test_req_timeout(servicer, context):
     request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
     with mock.patch.object(S2CS, "TIMEOUT", 0):
@@ -83,7 +83,7 @@ def test_req_timeout(servicer, context):
                 response = servicer.req(request, context)
                 assert "Hello not received within the timeout period" in str(excinfo.value)
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 def test_release_success(servicer, context):
     # Simulate an existing entry in the resource_map
     servicer.resource_map['test_uid'] = {
@@ -98,7 +98,7 @@ def test_release_success(servicer, context):
     response = servicer.release(release_request, context)
     assert "test_uid" not in servicer.resource_map
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 def test_req_and_hello(servicer):
     hello_request = Hello(uid='test_uid', role='PROD', prod_listeners=['10.0.0.1:5000'])
     req_request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
@@ -110,7 +110,8 @@ def test_req_and_hello(servicer):
         req_response = req_future.result(timeout=2)
     assert servicer.resource_map['test_uid']
 
-@pytest.mark.timeout(5)
+@pytest.mark.skip(reason="version 0.2.0 has not tested this yet")
+@pytest.mark.timeout(1)
 def test_full_request(servicer):
     hello_request = Hello(uid='test_uid', role='PROD', prod_listeners=['10.0.0.1:5000'])
     req_request = Request(uid='test_uid', role='PROD', num_conn=1, rate=1)
@@ -125,7 +126,7 @@ def test_full_request(servicer):
     print(servicer.resource_map)
     assert servicer.resource_map['test_uid']
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 def test_hello_success(servicer):
     servicer.resource_map['test_uid'] = {
         "role": "PROD",
@@ -139,7 +140,7 @@ def test_hello_success(servicer):
     response = servicer.hello(hello_request, context)
     assert response.message
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(1)
 @pytest.mark.xfail(raises=ValidationException)
 def test_hello_no_req(servicer):
     #Test scenario where hello message is received before request

@@ -1,0 +1,54 @@
+default:
+ tags:
+  - public
+  - shared_ssh
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  POETRY_VERSION: 1.5.1
+  PYTHON_VERSION: 3.9.2
+
+before_script:
+  ## This is not consistent really
+  #- curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+  - export PATH="$HOME/.pyenv/bin:$PATH"
+  - eval "$(pyenv init -)"
+  - eval "$(pyenv virtualenv-init -)"
+  - pyenv install $PYTHON_VERSION -s
+  - pyenv global $PYTHON_VERSION
+  - python --version
+  - curl -sSL https://install.python-poetry.org | python3 -
+  - export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
+  - poetry --version
+  - poetry config virtualenvs.create true
+#  - poetry update
+
+build:
+  stage: build
+  script:
+    - poetry build
+  artifacts:
+    paths:
+      - dist/*.whl
+      - dist/*.tar.gz
+
+test:
+  stage: test
+  script:
+    - poetry run pytest --cov=src --cov-report=xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploy your package to a repository or server"
+  only:
+    - main

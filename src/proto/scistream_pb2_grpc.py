@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import proto.scistream_pb2 as scistream__pb2
+from . import scistream_pb2 as scistream__pb2
 
 
 class ControlStub(object):

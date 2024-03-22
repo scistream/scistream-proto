@@ -3,8 +3,14 @@ worker_processes auto;
 events { }
 
 stream {
+    {% for dst in dest_array %}
     server {
-        listen {{ local_port }};
-        proxy_pass {{ remote_host }}:{{ remote_port }};
+        listen {{ local_ports[loop.index0] }};
+        proxy_pass {{ dst }};
     }
+    server {
+        listen {{ local_ports[loop.index0] }} udp;
+        proxy_pass {{ dst }};
+    }
+    {% endfor %}
 }
