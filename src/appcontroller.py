@@ -215,7 +215,7 @@ def create_appctrl(uid, s2cs, access_token, role, controller_ip):
 @click.argument('controller_ip', type=str, default="127.0.0.1")
 def mock(uid, s2cs, access_token, role, controller_ip):
     app_ctrl_instance = MockCtrl(uid, role, s2cs, access_token, controller_ip)
-    click.echo(f"Created IperfCtrl instance")
+    click.echo(f"Created AppCtrl instance")
 
 if __name__ == '__main__':
     cli()

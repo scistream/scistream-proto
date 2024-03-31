@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1]
+
+### [Added]
+ - Haproxy implementation of Scistream Data Server now permits explicit definition of the path for its configuration file.
+ - Haproxy default location for its configuration has been modified.
+ - All CLI commands now support --version
+
 ## [0.2.0]
 
 ### [Added]

@@ -18,6 +18,26 @@ def create_instance(class_name):
          print(f"Class {class_name} is not defined.")
     return create_instance(type)
 
+def get_haproxy_config_path():
+    # Check if the environment variable for HAProxy config path is set
+    config_path = os.environ.get('HAPROXY_CONFIG_PATH')
+
+    if config_path:
+        # If the environment variable is set, use its value
+        return config_path
+    else:
+        # If the environment variable is not set, use the default path
+        default_path = os.path.expanduser('~/.scistream/haproxy/')
+
+        # Create the directory if it doesn't exist
+        os.makedirs(os.path.dirname(default_path), exist_ok=True)
+
+        # Create the file if it doesn't exist
+        if not os.path.exists(default_path):
+            open(default_path, 'a').close()
+
+        return default_path
+
 class S2DS():
     ## TODO Cleanup
     def __init__(self):
@@ -93,14 +113,17 @@ class ProxyContainer():
         template = env.get_template(f'{self.cfg_filename}.j2')
         # Render the template to create the configuration file
         #renders file to a slightly different location
-        with open(f'{Path(__file__).parent}/{self.cfg_filename}', 'w') as f:
+
+        config_path = get_haproxy_config_path()
+
+        with open(f'{config_path}/{self.cfg_filename}', 'w') as f:
             f.write(template.render(vars))
         # Define the container configuration
         container_config = {
             'image': self.image_name ,
             'name': self.container_name,
             'detach': True,
-            'volumes': {f"{Path(__file__).parent}/{self.cfg_filename}": {'bind': self.cfg_location, 'mode': 'ro'}},
+            'volumes': {f"{config_path}/{self.cfg_filename}": {'bind': self.cfg_location, 'mode': 'ro'}},
             'network_mode': 'host'
         }
         # Start the HAProxy container

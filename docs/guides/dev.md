@@ -1,45 +1,114 @@
-# Advanced Guide
+# 6 Advanced SciStream Tutorial for Developers
 
-This tutorial is intended for software engineers, system administrators, and users who wish to deeply understand the inner workings of SciStream, customize its functionality, or extend its capabilities. The tutorial assumes you've completed the other tutorials, have familiarity with the basic usage of SciStream and aims to provide a comprehensive guide for developers looking to contribute to the project or integrate with the SciStream framework.
+## 6.1 Introduction
 
-### Prerequisites and required knowledge
+SciStream is a framework designed to enable high-speed, memory-to-memory data streaming between scientific instruments and remote computing facilities. This tutorial aims to provide developers with an in-depth understanding of SciStream's architecture and guide them through the process of setting up a SciStream environment using virtual machines (VMs) and running SciStream from the source code. By the end of this tutorial, developers will be equipped with the knowledge and skills necessary to modify, extend, and deploy SciStream based on their specific requirements.
 
-To fully benefit from this tutorial, you should have the following prerequisites and knowledge:
+### 6.1.1 Prerequisites
 
-Some proficiency in python.
-Familiarity with network protocols (TCP/IP, UDP) and concepts (routing, NAT, firewalls), docker
+- Familiarity with Python programming
+- Basic understanding of virtualization and VM management
+- Vagrant installed
+- Knowledge of networking concepts and docker
+- Experience with command-line interfaces
 
-## Setting Up the Development Environment
+### 6.1.2 Setting up a SciStream Environment with VMs
 
-We use [poetry](https://python-poetry.org/docs/) to manage our python environments. Please ensure you have Python 3.9+ and poetry installed in your environment. We require docker for using the Haproxy and NGINX S2DS implementation. We provide a setup scrit that was used to install these dependencies on the Fabric platform. This installation script was tested on ubuntu 20.04 version.
+In this part of the tutorial, we will walk through the steps to set up a SciStream environment using vagrant. This approach allows developers to create isolated and reproducible environments for development and testing purposes.
 
-Before building SciStream from source, install the necessary dependencies:
+### 6.1.3 Preparing the Development Environment
 
-- Python 3.9+
-- Docker Engine
-- Poetry
+**System Requirements:**
 
-Once you have the dependencies the following commands download and installs all the necessary python dependencies. It also activates the virtual environment.
+- A host machine with sufficient resources to run multiple VMs
+- Virtualization software (e.g., VirtualBox recommended )
+- Operating system: MacOs or Linux (recommended)
 
-~~~
-poetry install
-poetry shell
-~~~
+**Setting up Virtual Machines (VMs):**
 
-# Software components
+We have a reference vagrant file in the root folder.
 
-## S2DS and ProxyContainer Documentation
+```
+vagrant up
+```
 
-The code consists of the `S2DS` python class and `ProxyContainer` subclasses, including `Haproxy`, `Nginx`, `Janus`, and `DockerSock`, which serve to establish and manage the data streaming pipelines. It uses docker to bring up a Haproxy container, its configuration is built by S2DS using the information provided by S2CS.
+## 6.2 Start Scistream components
 
-If S2CS is unavailable, S2DS continues to work as before. Modifications to S2DS are performed by S2CS.
+- On the producer S2CS machine, start the SciStream Control Server with the appropriate configuration:
 
-### S2DS Class
+```
+vagrant ssh producers2
+s2cs --verbose --port=5007 --listener-ip=192.168.10.11 --type=Haproxy
+```
 
-The `S2DS` class is responsible for managing the lifecycle of S2DS subprocesses. It includes methods for starting subprocesses, managing listener ports, and releasing resources. The `start` method initiates a specified number of subprocesses, dynamically allocating ports and creating listener addresses. It also handles error conditions gracefully, raising a custom `S2DSException` when encountering issues. The `release` and `update_listeners` methods provide mechanisms for terminating subprocesses and updating connection information, respectively.
+- On the producer machine, initiate a producer request to specify the stream endpoint details. Notice that the --mock flag hardcodes the uid of the request for reproducibility purposes:
 
-### ProxyContainer and Subclasses
+```
+vagrant ssh producer
+s2uc prod-req --s2cs 192.168.10.11:5007 --mock True
+```
 
-The `ProxyContainer` class and its subclasses (`Haproxy`, `Nginx`, `Janus`, `DockerSock`) are a specific implementation of S2DS and they abstract the complexities of deploying proxy containers to facilitate. These classes are designed to work with different Docker plugins and configurations, allowing for flexible deployment scenarios. Each subclass specifies its own container configuration, including the image name, container name, and configuration file locations. The `start` method in each class leverages Docker APIs to deploy and manage containers based on the provided configuration. Additionally, the `update_listeners` method in `ProxyContainer` demonstrates how to dynamically update listener configurations using Jinja2 templates.
+Note down the unique ID (uid) generated for the producer request.
 
-#
+The control server will be waiting for the hello message.
+
+- On a second terminal of the producer machine. Run the application controller mock using the following command:
+
+```
+vagrant ssh producer
+appctrl mock 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.10.11:5007 INVALID_TOKEN PROD 192.168.10.10
+```
+
+Notice the hello message informs s2cs the forwarding address and port to which the scistream will forward the traffic. In this example, the appctrl script hardcodes the ports, the application address is the last parameter. The appctrl in this case is a thin client and can be thought of as a reference implementation.
+
+- On the consumer S2CS machine, start the SciStream Control Server with the appropriate configuration. Note that client_id and client_secret need to be generated accordingly as described in the authorization tutorial.
+
+```
+vagrant ssh consumers2
+s2cs --verbose --port=5007 --listener-ip=192.168.30.10 --type=Haproxy --client-id "abc" --client-secret
+```
+
+- Now, on the consumer machine, login and initiate a consumer request to specify the stream endpoint details. Replace `<uid>` with the unique ID obtained from the producer request.
+
+```
+vagrant ssh consumer
+s2uc login --scope "abc"
+s2uc cons-req --s2cs 192.168.30.10:5007 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.20.10:5074
+```
+The control server will be waiting for the hello message to complete the resource reservation.
+
+- On a second terminal of consumer machine. Run the application controller mock using the following command:
+
+```
+appctrl mock 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.30.10:5007 INVALID_TOKEN PROD 192.168.20.10
+```
+
+The hello message informs s2cs the forwarding address and port to which the scistream will forward the traffic. In this example, the appctrl script hardcodes the ports, the application address is the last parameter. The appctrl in this case is a thin client and can be thought of as a reference implementation.
+
+## 6.3 Start producer and consumer application
+
+- On the producer machine, start iPerf in server mode:
+
+```
+vagrant ssh producer
+iperf -s -p 5001
+```
+
+- On the consumer machine, start iPerf in client mode:
+
+```
+iperf -c 10.16.42.12 -p 5001 -t 60
+```
+
+  This command will initiate a 60-second data stream from the producer to the consumer.
+
+- On the S2UC machine, monitor the status of the stream flow:
+
+```
+python src/s2uc.py check-status <uid>
+```
+
+  Replace `<uid>` with the unique ID of the stream flow.
+
+- Verify that data is being transferred successfully from the producer to the consumer by checking the iPerf output on both machines.
+- Check for any errors or performance bottlenecks in the SciStream logs on the S2CS and S2

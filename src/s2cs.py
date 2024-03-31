@@ -16,6 +16,9 @@ class S2CSException(Exception):
 default_cid = 'c42c0dac-0a52-408e-a04f-5d31bfe0aef8'
 default_secret = ""
 
+import importlib.metadata
+__version__ = importlib.metadata.version('scistream-proto')
+
 class S2CS(scistream_pb2_grpc.ControlServicer):
     TIMEOUT = 180 #timeout value in seconds
     def __init__(self, listener_ip, verbose, type="Haproxy", client_id=default_cid, client_secret=default_secret):
@@ -121,7 +124,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         return len(auth_state.identities) > 0
         #return False
 
-def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False, client_id=default_cid, client_secret=default_secret):
+def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False, client_id=default_cid, client_secret=default_secret, version=False):
     """
     Starts a gRPC implementation of Scistream server.
 
@@ -134,6 +137,9 @@ def start(listener_ip='0.0.0.0', port=5000, type= "S2DS", v=False, verbose=False
         client_id (str): Client ID for authentication. Defaults to value of 'default_cid'.
         client_secret (str): Client secret for authentication. Defaults to value of 'default_secret'.
     """
+    if version:
+        print(f"Version: {__version__}")
+        return
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         servicer = S2CS(listener_ip, (v or verbose), type, client_id, client_secret)

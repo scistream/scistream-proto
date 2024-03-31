@@ -11,8 +11,11 @@ from globus_sdk.scopes import ScopeBuilder
 from .proto import scistream_pb2
 from .proto import scistream_pb2_grpc
 from . import utils
+import importlib.metadata
+__version__ = importlib.metadata.version('scistream-proto')
 
 @click.group()
+@click.version_option(__version__, '--version', '-v', help='Show the version and exit')
 def cli():
     pass
 
