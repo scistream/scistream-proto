@@ -24,7 +24,7 @@ Before using SciStream, ensure that you have the following:
 
 ### Installation Steps
 
-1. Download the Scistream package by clicking [here](dist/scistream_proto-1.0.0-py3-none-any.whl).
+1. Download the Scistream package by clicking [here](../dist/scistream_proto-1.0.0-py3-none-any.whl).
 
 2. Install the downloaded package using pip:
 

@@ -4,10 +4,10 @@ In this page, we will cover how SciStream integrates with the Globus platform fo
 
 We expect you to have reviewed all the previous chapters:
 
-- [1. Introduction](introduction.md)
-- [2. Understanding SciStream](scistream.md)
-- [3. Getting Started](quickstart.md)
-- [4. User Guide](guides/user.md)
+- [1. Introduction](../introduction.md)
+- [2. Understanding SciStream](../scistream.md)
+- [3. Getting Started](../quickstart.md)
+- [4. User Guide](user.md)
 
 ## 5.1 Globus Auth
 
