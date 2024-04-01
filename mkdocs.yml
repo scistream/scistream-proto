@@ -2,6 +2,7 @@ site_name: Scistream
 theme:
   name: readthedocs
 nav:
+  - Index: index.md
   - 1. Introduction: introduction.md
   - 2. Understanding SciStream: scistream.md
   - 3. Getting Started: quickstart.md
