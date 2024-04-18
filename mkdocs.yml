@@ -1,0 +1,18 @@
+site_name: Scistream
+theme:
+  name: readthedocs
+nav:
+  - Index: index.md
+  - 1. Introduction: introduction.md
+  - 2. Understanding SciStream: scistream.md
+  - 3. Getting Started: quickstart.md
+  - 4. User Guide: guides/user.md
+  - 5. Authentication and Security: guides/auth.md
+  - 6. Developer Guide: guides/dev.md
+  - Changelogs: s/Changelog.md
+#  - 7. Full tutorial: guides/tutorial.md
+#  - Use Cases and Examples: use-cases.md
+#  - Changelog: changelog.md
+#  - FAQ: faq.md
+#  - Community and Support: community.md
+#  - Appendices: appendices.md
