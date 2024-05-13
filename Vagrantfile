@@ -4,7 +4,8 @@ Vagrant.configure("2") do |config|
   config.vm.box = "bento/ubuntu-22.04"
 
   # Copy the wheel file to each VM
-  config.vm.provision "file", source: "docs/dist/scistream_proto-0.2.1-py3-none-any.whl", destination: "scistream_proto-0.2.1-py3-none-any.whl"
+  config.vm.provision "file", source: "docs/dist/scistream_proto-0.2.1-py3-none-any.whl", 
+destination: "scistream_proto-1.0.0-py3-none-any.whl"
 
   # Provisioning to install Docker and the Python package
   config.vm.provision "shell", inline: <<-SHELL
