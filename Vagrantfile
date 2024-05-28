@@ -18,7 +18,7 @@ destination: "scistream_proto-1.0.0-py3-none-any.whl"
     sudo apt-get install -y iperf3
     sudo usermod -aG docker vagrant
     sudo apt-get install -y python3-pip
-    pip3 install scistream_proto-0.2.2-py3-none-any.whl
+    pip3 install scistream_proto-1.1.2-py3-none-any.whl
   SHELL
 
   config.vm.define "producer" do |producer|

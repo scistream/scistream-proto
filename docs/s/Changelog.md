@@ -1,8 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.1.2]
+- S2CS now uses SSL 
+- S2UC now uses TLS
+- appcontroller cli tool also uses TLS
 
-## [0.2.1]
+## [1.0.0]
 
 ### [Added]
  - Haproxy implementation of Scistream Data Server now permits explicit definition of the path for its configuration file.

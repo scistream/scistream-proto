@@ -90,14 +90,17 @@ def logout():
         adapter.remove_tokens_for_resource_server(rs)
     click.echo("Successfully logged out!")
 
-#TODO update
 @cli.command()
 @click.argument('uid', type=str, required=True)
 @click.option('--s2cs', default="localhost:5000")
+@click.option('--server_cert', default="server.crt", help="Path to the server certificate file")
 @utils.authorize
-def release(uid, s2cs, metadata=None):
+def release(uid, s2cs, server_cert, metadata=None):
     try:
-        with grpc.insecure_channel(s2cs) as channel:
+        with open(server_cert, 'rb') as f:
+            trusted_certs = f.read()
+        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+        with grpc.secure_channel(s2cs, credentials) as channel:
             stub = scistream_pb2_grpc.ControlStub(channel)
             msg = scistream_pb2.Release(uid=uid)
             resp = stub.release(msg, metadata=metadata)
@@ -109,11 +112,16 @@ def release(uid, s2cs, metadata=None):
 @click.option('--num_conn', type=int, default=5)
 @click.option('--rate', type=int, default=10000)
 @click.option('--s2cs', default="localhost:5000")
+@click.option('--server_cert', default="server.crt", help="Path to the server certificate file")
 @click.option('--mock', default=False)
 @click.option('--scope', default="")
-def prod_req(num_conn, rate, s2cs, mock, scope):
-    with grpc.insecure_channel(s2cs) as channel:
+def prod_req(num_conn, rate, s2cs, server_cert, mock, scope):
+    with open(server_cert, 'rb') as f:
+        trusted_certs = f.read()
+        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+    with grpc.secure_channel(s2cs, credentials) as channel:
         prod_stub = scistream_pb2_grpc.ControlStub(channel)
+        
         uid = str(uuid.uuid1()) if not mock else "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3"
         click.echo("uid; s2cs; access_token; role")
         if scope == "":
@@ -136,10 +144,14 @@ def prod_req(num_conn, rate, s2cs, mock, scope):
 @click.option('--rate', type=int, default=10000)
 @click.option('--s2cs', default="localhost:6000")
 @click.option('--scope', default="")
+@click.option('--server_cert', default="server.crt", help="Path to the server certificate file")
 @click.argument("uid")
 @click.argument("prod_lstn")
-def cons_req(num_conn, rate, s2cs, scope, uid, prod_lstn):  # uid and prod_lstn are dependencies from PROD context
-    with grpc.insecure_channel(s2cs) as channel:
+def cons_req(num_conn, rate, s2cs, scope, server_cert, uid, prod_lstn):  # uid and prod_lstn are dependencies from PROD context
+    with open(server_cert, 'rb') as f:  
+        trusted_certs = f.read()
+        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+    with grpc.secure_channel(s2cs, credentials) as channel:
         cons_stub = scistream_pb2_grpc.ControlStub(channel)
         if scope == "":
             scope = utils.get_scope_id(s2cs)
