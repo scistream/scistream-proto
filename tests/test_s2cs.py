@@ -28,7 +28,7 @@ class MockS2DS(S2DS):
         # Define your mocked behavior here (if needed)
         pass
 
-    def update_listeners(self, listeners, s2ds_proc):
+    def update_listeners(self, listeners, s2ds_proc, uid):
         # Define your mocked behavior here (if needed)
         pass
 
@@ -148,6 +148,67 @@ def test_hello_no_req(servicer):
     response = servicer.hello(hello_request, context)
     print(response.message)
     assert response.message
+
+@pytest.mark.timeout(5)
+def test_full_haproxy():
+    s2cs_producer = S2CS(listener_ip="192.168.10.11", type="Haproxy", verbose=True)
+    hello = Hello(
+        uid='4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3', 
+        role='PROD', 
+        prod_listeners=['192.168.10.10:5013', '192.168.10.10:5014', '192.168.10.10:5015'])
+    request = Request(uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", role='PROD', num_conn=3, rate=10000)
+    with futures.ThreadPoolExecutor(max_workers=2) as executor:
+        req_future = executor.submit(lambda: s2cs_producer.req(request))
+        time.sleep(0.5)
+        hello_future = executor.submit(lambda: s2cs_producer.hello(hello))
+        #hello_response = hello_future.result(timeout=2)
+        req_response = req_future.result(timeout=2)
+    #print(s2cs_producer.resource_map)
+    #print(req_response)  # Should this be printed?
+    #prod_lstn = req_response.listeners
+    #prod_app_lstn = req_response.prod_listeners
+    # Update the prod_stub
+    update=UpdateTargets(uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", remote_listeners=req_response.prod_listeners)
+    s2cs_producer.update(update)
+    #print(s2cs_producer.resource_map)
+    assert True
+
+@pytest.mark.timeout(5)
+def test_full_nginx():
+    s2cs_producer = S2CS(listener_ip="192.168.10.11", type="Nginx", verbose=True)
+    hello = Hello(
+        uid='4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3', 
+        role='PROD', 
+        prod_listeners=['192.168.10.10:5084', '192.168.10.10:5085', '192.168.10.10:5086'])
+    request = Request(uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", role='PROD', num_conn=3, rate=10000)
+    with futures.ThreadPoolExecutor(max_workers=2) as executor:
+        req_future = executor.submit(lambda: s2cs_producer.req(request))
+        time.sleep(0.5)
+        hello_future = executor.submit(lambda: s2cs_producer.hello(hello))
+        req_response = req_future.result(timeout=2)
+    # Update the prod_stub
+    update=UpdateTargets(uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", remote_listeners=req_response.prod_listeners)
+    s2cs_producer.update(update)
+    assert True
+
+@pytest.mark.timeout(5)
+def test_full_stunnel():
+    s2cs_producer = S2CS(listener_ip="192.168.10.11", type="Stunnel", verbose=True)
+    hello = Hello(
+        uid='4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3', 
+        role='PROD', 
+        prod_listeners=['192.168.10.10:5084', '192.168.10.10:5085', '192.168.10.10:5086'])
+    request = Request(uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", role='PROD', num_conn=3, rate=10000)
+    with futures.ThreadPoolExecutor(max_workers=2) as executor:
+        req_future = executor.submit(lambda: s2cs_producer.req(request))
+        time.sleep(0.5)
+        hello_future = executor.submit(lambda: s2cs_producer.hello(hello))
+        req_response = req_future.result(timeout=2)
+    # Update the prod_stub
+    update=UpdateTargets(uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", remote_listeners=req_response.prod_listeners, role='PROD')
+    s2cs_producer.update(update)
+    assert True
+
 """
 @pytest.mark.xfail
 def test_validation(servicer, context):

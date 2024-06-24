@@ -32,6 +32,31 @@ We have a reference vagrant file in the root folder.
 vagrant up
 ```
 
+## Generate Digital Certificates
+
+```
+vagrant ssh producers2
+openssl genrsa -out server.key 2048
+```
+Create a file named server.conf with the following content:
+```
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+CN = 192.168.10.11
+
+[v3_req]
+subjectAltName = IP:192.168.10.11
+```
+Then let's create the certificates
+```
+openssl req -new -key server.key -out server.csr -config server.conf
+openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt -extfile server.conf -extensions v3_req
+```
+
 ## 6.2 Start Scistream components
 
 - On the producer S2CS machine, start the SciStream Control Server with the appropriate configuration:
@@ -45,6 +70,7 @@ s2cs --verbose --port=5007 --listener-ip=192.168.10.11 --type=Haproxy
 
 ```
 vagrant ssh producer
+cp ./vagrant/server.crt ./server.crt
 s2uc prod-req --s2cs 192.168.10.11:5007 --mock True
 ```
 
@@ -56,6 +82,7 @@ The control server will be waiting for the hello message.
 
 ```
 vagrant ssh producer
+cp ./vagrant/server.crt ./server.crt
 appctrl mock 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.10.11:5007 INVALID_TOKEN PROD 192.168.10.10
 ```
 
@@ -72,6 +99,7 @@ s2cs --verbose --port=5007 --listener-ip=192.168.30.10 --type=Haproxy --client-i
 
 ```
 vagrant ssh consumer
+cp ./vagrant/server.crt ./server.crt
 s2uc login --scope "abc"
 s2uc cons-req --s2cs 192.168.30.10:5007 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.20.10:5074
 ```
@@ -80,6 +108,7 @@ The control server will be waiting for the hello message to complete the resourc
 - On a second terminal of consumer machine. Run the application controller mock using the following command:
 
 ```
+cp ./vagrant/server.crt ./server.crt
 appctrl mock 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.30.10:5007 INVALID_TOKEN PROD 192.168.20.10
 ```
 

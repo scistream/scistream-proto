@@ -1,0 +1,20 @@
+; Stunnel Configuration
+
+; Global Options
+fips = no
+; Specify the pre-shared key file
+PSKsecrets = /etc/stunnel/stunnel.key
+securityLevel = 0
+debug = 7
+foreground = yes
+sslVersionMax = TLSv1.2
+
+{% for dst in dest_array %}
+; PSK Client Configuration
+[{{ local_ports[loop.index0] }}]
+client = {{ client }}
+accept = {{ local_ports[loop.index0] }}
+connect = {{ dst.split(':')[0] }}:{{ dst.split(':')[1] }}
+ciphers = eNULL 
+
+{% endfor %}

@@ -58,11 +58,11 @@ def authenticated(func):
     """ Mark a route as requiring authentication """
     @functools.wraps(func)
     def decorated_function(*args, **kwargs):
-        context = args[2]
-        self = args[0]
         ## if client _secret has not been defined then we turn off credential validation
+        self = args[0]
         if self.client_secret == "":
             return func(*args, **kwargs)
+        context = args[2]
         metadata = dict(context.invocation_metadata())
         auth_token = metadata.get('authorization')
         error_message = f'scope_id {self.client_id}'

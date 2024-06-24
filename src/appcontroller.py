@@ -42,7 +42,11 @@ class AppCtrl():
             if not valid_ip(controller_ip):
                 sys.exit("AppCtrl: controller_ip not valid try again")
             request.prod_listeners.extend([f'{controller_ip}:5074', f'{controller_ip}:5075', f'{controller_ip}:5076', f'{controller_ip}:37000', f'{controller_ip}:47000'])
-        with grpc.insecure_channel(s2cs) as channel:
+        # load server certificate from file
+        with open('server.crt', 'rb') as f:
+            trusted_certs = f.read()
+            credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+        with grpc.secure_channel(s2cs, credentials) as channel:
             s2cs = scistream_pb2_grpc.ControlStub(channel)
             request.role = role
             metadata = (
