@@ -1,6 +1,6 @@
 # 5. Authentication and Security
 
-In this page, we will cover how SciStream integrates with the Globus platform for authentication, how to configure authentication settings, and how to secure your data streams. We will also discuss access control mechanisms and best practices for ensuring the security of your SciStream environment.
+In this page, we will cover how SciStream integrates with the Globus platform for control channel authentication, how to configure authentication settings, and how to secure your data streams. We will also discuss access control mechanisms and best practices for ensuring the security of your SciStream environment.
 
 We expect you to have reviewed all the previous chapters:
 

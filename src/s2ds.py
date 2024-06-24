@@ -10,6 +10,10 @@ import urllib3
 class S2DSException(Exception):
     pass
 
+##Instance Names allowed:
+# Haproxy
+# Nginx
+# Stunnel
 def create_instance(class_name):
     try:
         instance = eval(f"{class_name}()")
@@ -27,10 +31,10 @@ def get_haproxy_config_path():
         return config_path
     else:
         # If the environment variable is not set, use the default path
-        default_path = os.path.expanduser('~/.scistream/haproxy/')
+        default_path = os.path.expanduser('~/.scistream')
 
         # Create the directory if it doesn't exist
-        os.makedirs(os.path.dirname(default_path), exist_ok=True)
+        os.makedirs(default_path, exist_ok=True)
 
         # Create the file if it doesn't exist
         if not os.path.exists(default_path):
@@ -68,7 +72,7 @@ class S2DS():
                 entry["s2ds_proc"][i] = rem_proc.pid # Print out PID rather than Popen object
             self.logger.info(f"Terminated {len(entry['s2ds_proc'])} S2DS subprocess(es)")
 
-    def update_listeners(self, listeners, s2ds_proc):
+    def update_listeners(self, listeners, s2ds_proc, uid, role):
         # Send remote port information to S2DS subprocesses in format "remote_ip:remote_port\n"
         for i in range(len(listeners)):
             curr_proc = s2ds_proc[i]
@@ -83,8 +87,8 @@ import docker
 from jinja2 import Environment, FileSystemLoader
 
 class ProxyContainer():
-    def __init__(self, docker_plugin_type="default"):
-        self.docker_plugin_type = docker_plugin_type
+    def __init__(self, service_plugin_type="docker"):
+        self.service_plugin_type = service_plugin_type
         pass
 
     def release(self, entry):
@@ -97,16 +101,18 @@ class ProxyContainer():
         entry={"s2ds_proc":[], "listeners":[f"{listener_ip}:{port}" for port in self.local_ports]}
         return entry
 
-    def update_listeners(self, listeners, s2ds_proc):
-        if self.docker_plugin_type == "default":
+    def update_listeners(self, listeners, s2ds_proc, uid, role = "PROD"):
+        if self.service_plugin_type == "docker":
            docker_client = DockerPlugin()
-        if self.docker_plugin_type == "janus":
+        if self.service_plugin_type == "janus":
            docker_client = JanusPlugin()
-        if self.docker_plugin_type == "dockersock":
+        if self.service_plugin_type == "dockersock":
            docker_client = DockerSockPlugin()
+
         vars = {
             'local_ports': self.local_ports,
-            'dest_array': listeners
+            'dest_array': listeners,
+            'client': "yes" if role == "CONS" else "no"
         }
         # Load the Jinja2 environment and get the template
         env = Environment(loader=FileSystemLoader(f'{Path(__file__).parent}'))
@@ -118,48 +124,73 @@ class ProxyContainer():
 
         with open(f'{config_path}/{self.cfg_filename}', 'w') as f:
             f.write(template.render(vars))
+        with open(f'{config_path}/{self.key_filename}', 'w') as f:
+            f.write("client1:"+uid.replace("-", ""))
         # Define the container configuration
         container_config = {
             'image': self.image_name ,
             'name': self.container_name,
             'detach': True,
-            'volumes': {f"{config_path}/{self.cfg_filename}": {'bind': self.cfg_location, 'mode': 'ro'}},
+            'volumes': {
+                        f"{config_path}/{self.cfg_filename}": {'bind': self.cfg_location, 'mode': 'ro'},
+                        f"{config_path}/{self.key_filename}": {'bind': self.key_location, 'mode': 'ro'}
+                        },
             'network_mode': 'host'
         }
-        # Start the HAProxy container
+        # Start the proxy container
         name = self.container_name
+        
         docker_client.start(name, container_config)
 
-
+ 
 class Haproxy(ProxyContainer):
-    def __init__(self, docker_plugin_type="default"):
-        self.docker_plugin_type = docker_plugin_type
+    def __init__(self, service_plugin_type="docker"):
+        self.service_plugin_type = service_plugin_type
         self.cfg_location = '/usr/local/etc/haproxy/haproxy.cfg'
+        self.key_location = '/usr/local/etc/haproxy/haproxy.key'
         self.image_name = 'haproxy:latest'
         self.container_name = "myhaproxy"
         self.cfg_filename = 'haproxy.cfg'
-        if self.docker_plugin_type == "dockersock":
+        self.key_filename = 'haproxy.cfg.j2'
+        if self.service_plugin_type == "dockersock":
            self.cfg_filename = "/data/scistream-demo/configs/haproxy.cfg"
         pass
 
 class Nginx(ProxyContainer):
-    def __init__(self, docker_plugin_type="default"):
-        self.docker_plugin_type = docker_plugin_type
+    def __init__(self, service_plugin_type="docker"):
+        self.service_plugin_type = service_plugin_type
         self.cfg_location = '/etc/nginx/nginx.conf'
+        self.key_location = '/etc/nginx/nginx.key'
         self.image_name = 'nginx:latest'
         self.container_name = "mynginx"
         self.cfg_filename = f'nginx.conf'
-        if self.docker_plugin_type == "dockersock":
+        self.key_filename = 'nginx.conf.j2'
+        if self.service_plugin_type == "dockersock":
            self.cfg_filename = "/data/scistream-demo/configs/nginx.conf"
-
         pass
+
+class Stunnel(ProxyContainer):
+    def __init__(self, service_plugin_type="docker"):
+        self.service_plugin_type = service_plugin_type
+        self.cfg_location = '/etc/stunnel/stunnel.conf'
+        self.key_location = '/etc/stunnel/stunnel.key'
+        self.image_name = 'stunnel:latest'
+        self.container_name = "mystunnel"
+        self.cfg_filename = 'stunnel.conf'
+        self.key_filename = 'stunnel.key'
+        
+        if self.service_plugin_type == "dockersock":
+            self.cfg_filename = "/data/scistream-demo/configs/stunnel.conf"
+            self.key_filename = "/data/scistream-demo/configs/stunnel.key"
+        pass
+
 class Janus(Haproxy):
     def __init__(self):
-        self.docker_plugin_type = "janus"
+        self.service_plugin_type = "janus"
 
 class DockerSock(Haproxy):
     def __init__(self):
-        self.docker_plugin_type = "dockersock"
+        self.service_plugin_type = "dockersock"
 
 class DockerPlugin():
     def __init__(self):

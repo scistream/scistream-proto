@@ -136,7 +136,7 @@ def prod_req(num_conn, rate, s2cs, server_cert, mock, scope):
         prod_lstn = prod_resp.listeners
         prod_app_lstn = prod_resp.prod_listeners
         # Update the prod_stub
-        update(prod_stub, uid, prod_resp.prod_listeners, scope_id=scope)
+        update(prod_stub, uid, prod_resp.prod_listeners, "PROD", scope_id=scope)
         print(prod_resp.listeners)
 
 @cli.command()
@@ -165,7 +165,7 @@ def cons_req(num_conn, rate, s2cs, scope, server_cert, uid, prod_lstn):  # uid a
             listener_array = prod_lstn.split(',')
         else:
             listener_array = [prod_lstn]
-        update(cons_stub, uid, listener_array, scope_id=scope)
+        update(cons_stub, uid, listener_array, "CONS", scope_id=scope)
         # prod_lstn is a dependency from PROD context
 
 
@@ -190,10 +190,10 @@ def client_request(stub, uid, role, num_conn, rate, scope_id="", metadata=None):
             click.echo(f"Another GRPC error occurred: {e.details()}")
 
 @utils.authorize
-def update(stub, uid, remote_listeners, scope_id="", metadata=None):
+def update(stub, uid, remote_listeners, role= "PROD", scope_id="", metadata=None):
     """This behaves very similar to client_request"""
     try:
-        update_request = scistream_pb2.UpdateTargets(uid=uid, remote_listeners=remote_listeners)
+        update_request = scistream_pb2.UpdateTargets(uid=uid, remote_listeners=remote_listeners, role=role)
         stub.update(update_request, metadata=metadata)
     except Exception as e:
         print(f"Error during update: {e}")

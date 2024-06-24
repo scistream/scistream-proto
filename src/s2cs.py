@@ -42,7 +42,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
     #@validate_args(has=["role", "uid", "num_conn", "rate"])
     @request_decorator
     @authenticated
-    def req(self, request: scistream_pb2.Request, context):
+    def req(self, request: scistream_pb2.Request, context=None):
         self.resource_map[request.uid] = {
             "role": request.role,
             "num_conn": request.num_conn,
@@ -66,22 +66,23 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
 
     @request_decorator
     @authenticated
-    def update(self, request, context):
+    def update(self, request, context=None):
         #improve validation
         listeners=request.remote_listeners
         entry = self.resource_map[request.uid]
+        print(request.role)
         if (request.role == "PROD"):
             listeners = [ listeners[ i % len(listeners) ] for i in range(entry["num_conn"]) ]
         else:
             entry["prods2cs_listeners"] = listeners
             # Include remote listeners for transparency to user
-        self.s2ds.update_listeners(listeners, entry["s2ds_proc"])
+        self.s2ds.update_listeners(listeners, entry["s2ds_proc"], request.uid, request.role)
         response = scistream_pb2.Response(listeners=entry["listeners"], prod_listeners=listeners)
         return response
 
     @request_decorator
     @authenticated
-    def release(self, request, context):
+    def release(self, request, context=None):
         self.release_request(request.uid)
         response = scistream_pb2.Response()
         return response
@@ -99,7 +100,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
 
     @authenticated
     @request_decorator
-    def hello(self, request, context):
+    def hello(self, request, context=None):
         ## Possible race condition here between REQ and HELLO
         entry = self.resource_map[request.uid]
         if request.role == "PROD":
