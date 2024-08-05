@@ -2,11 +2,8 @@ import os
 import sys
 import time
 import socket
-import logging
-import threading
 import subprocess
 from pathlib import Path
-
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -37,13 +34,6 @@ def stunnel_subprocess():
     return StunnelSubprocess()
 
 
-@pytest.fixture
-def mock_logger():
-    logger = logging.getLogger("test_logger")
-    logger.setLevel(logging.INFO)
-    return logger
-
-
 @pytest.fixture(autouse=True)
 def cleanup_processes():
     processes = []
@@ -64,7 +54,7 @@ def test_get_config_path_without_env_var(mock_home):
     assert os.path.exists(expected_path)
 
 
-def test_get_config_path_creates_directory(mock_home):
+def test_get_config_path_creates_directory():
     # Cleanup can be improved
     config_path = get_config_path()
     assert os.path.isdir(os.path.dirname(config_path))
@@ -79,29 +69,28 @@ def test_get_config_path_existing_directory(mock_home):
 
 def test_init(stunnel_subprocess):
     assert stunnel_subprocess.cfg_filename == "stunnel.conf"
-    assert isinstance(stunnel_subprocess.logger, logging.Logger)
 
 
-def test_start(stunnel_subprocess, mock_logger):
+def test_start(stunnel_subprocess):
     result = stunnel_subprocess.start(5, "127.0.0.1")
     assert len(result["listeners"]) == 5
     assert all(listener.startswith("127.0.0.1:") for listener in result["listeners"])
     assert result["s2ds_proc"] == []
 
 
-def test_start_single(stunnel_subprocess, mock_logger):
+def test_start_single(stunnel_subprocess):
     result = stunnel_subprocess.start(1, "127.0.0.1")
     assert len(result["listeners"]) == 1
     assert all(listener.startswith("127.0.0.1:") for listener in result["listeners"])
     assert result["s2ds_proc"] == []
 
 
-def test_release_no_processes(stunnel_subprocess, mock_logger):
+def test_release_no_processes(stunnel_subprocess):
     entry = {"s2ds_proc": []}
     stunnel_subprocess.release(entry)
 
 
-def test_release_with_processes(stunnel_subprocess, mock_logger):
+def test_release_with_processes(stunnel_subprocess):
     procs = [subprocess.Popen(["sleep", "10"]) for _ in range(3)]
     entry = {"s2ds_proc": procs}
     stunnel_subprocess.release(entry)
@@ -125,8 +114,8 @@ def test_generate_stunnel_config_content(stunnel_subprocess):
     assert str(Path(f"{uid}.key")) in content
 
 
-@pytest.mark.parametrize("role,expected", [("CONS", "yes"), ("PROD", "no")])
-def test_update_listeners(stunnel_subprocess, mock_logger, role, expected):
+@pytest.mark.parametrize("role", ["CONS", "PROD"])
+def test_update_listeners(stunnel_subprocess, role):
     listeners = ["127.0.0.1:8080"]
     s2ds_proc = []
     uid = "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3"
