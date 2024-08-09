@@ -1,3 +1,4 @@
+import logging
 import sys
 import fire
 import grpc
@@ -7,7 +8,7 @@ from .proto import scistream_pb2
 from .proto import scistream_pb2_grpc
 
 from concurrent import futures
-from .s2ds import create_instance
+from .s2ds.s2ds import create_instance
 from .utils import request_decorator, set_verbosity, authenticated
 from globus_action_provider_tools.authentication import TokenChecker
 
@@ -53,6 +54,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
                 ],
             )
         set_verbosity(self, verbose)
+        self.logger.info(f"Starting S2CS server with type: {self.type}")
 
     # @validate_args(has=["role", "uid", "num_conn", "rate"])
     @request_decorator
@@ -103,6 +105,9 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.s2ds.update_listeners(
             listeners, entry["s2ds_proc"], request.uid, request.role
         )
+        self.logger.debug(
+            f"Updated : '{request.uid}' with entry: {self.resource_map[request.uid]}"
+        )
         response = scistream_pb2.Response(
             listeners=entry["listeners"], prod_listeners=listeners
         )
@@ -122,6 +127,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.logger.debug(f"Removed key: '{uid}' with entry: {removed_item}")
 
     def release_all(self):
+        self.logger.info("Releasing all resources")
         uids = [i for i in self.resource_map]
         for i in uids:
             self.release_request(i)

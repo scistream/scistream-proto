@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from concurrent import futures
 from src.proto.scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
 from src.s2cs import S2CS, S2CSException
-from src.s2ds import S2DS
+from src.s2ds.utils import S2DS
 from src.utils import ValidationException
 
 
