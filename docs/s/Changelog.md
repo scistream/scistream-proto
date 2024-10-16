@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [UNRELEASED]
+
+The development process has been improved. We introduce an ansible playbook for vagrant development providing a better documented procedure for installation of Scistream. We also have a 
+scistream.yml playbook that should represent the procedure for running Scistream.
+
+We developed a subprocess plugin for running Stunnel specifically, this should later be generalized to run the other types of proxies.
+
+We improved Control Server logging for auditing purposes.
+
+We consolidated S2UC commands so that the appcontroller functionality is now integrated into the initial request.
+
+### Breaking changes
+ - This version jeopardizes the cons-req command
+
+### [Added]
+ - Dockerless Stunnel implementation
+ - inbound-request new S2UC command that  integrates appcontroller
+ - S2DS pytests
+ - Provisioning Ansible playbook for vagrant development environment
+
+### 
+
 ## [1.1.0] - Security Enhancements
 
 This release focuses on improving security architecture. It introduces encrypted Control Channel communication, deprecates unencrypted calls, and adds low-overhead authentication for data-plane endpoints via Stunnel.

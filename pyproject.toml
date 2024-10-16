@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scistream-proto"
-version = "1.1.0"
+version = "1.1.1"
 description = "Scistream securely allows participating facilities to make their resources available through a programmatic interface"
 authors = ["Flavio Castro <fcastro@anl.gov>", "Joaquin Chung <chung@anl.gov>", "AJ Wisniewski <idk@anl.gov>"]
 readme = "docs/quickstart.md"

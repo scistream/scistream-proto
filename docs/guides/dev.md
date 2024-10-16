@@ -46,10 +46,10 @@ x509_extensions = v3_req
 prompt = no
 
 [req_distinguished_name]
-CN = 192.168.10.11
+CN = 192.168.30.10
 
 [v3_req]
-subjectAltName = IP:192.168.10.11
+subjectAltName = IP:192.168.30.10
 ```
 Then let's create the certificates
 ```

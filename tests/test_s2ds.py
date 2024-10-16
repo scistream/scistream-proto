@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.s2ds import StunnelSubprocess, get_config_path
+from src.s2ds.subproc import StunnelSubprocess, get_config_path
 
 
 @pytest.fixture
@@ -42,6 +42,8 @@ def cleanup_processes():
         proc.terminate()
         proc.wait()
 
+
+## Make sure to use user space authorization
 
 def test_get_config_path_with_env_var(mock_env_var):
     mock_env_var("HAPROXY_CONFIG_PATH", "/custom/path")

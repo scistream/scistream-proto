@@ -3,8 +3,6 @@ import grpc
 import uuid
 import time
 import sys
-from .appcontroller import AppCtrl
-from .appcontroller import IperfCtrl
 from concurrent import futures
 from globus_sdk import NativeAppAuthClient
 from globus_sdk.scopes import ScopeBuilder
@@ -144,6 +142,61 @@ def release(uid, s2cs, server_cert, metadata=None):
 )
 @click.option("--mock", default=False)
 @click.option("--scope", default="")
+@click.option("--remote_ip", default="localhost")
+@click.option(
+    "--receiver_ports",
+    default="5074,5075,5076,37000,47000",
+    help="Comma-separated list of receiver ports",
+)
+def inbound_request(
+    num_conn, rate, s2cs, server_cert, mock, scope, remote_ip, receiver_ports
+):
+    with open(server_cert, "rb") as f:
+        trusted_certs = f.read()
+        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+    with grpc.secure_channel(s2cs, credentials) as channel:
+        prod_stub = scistream_pb2_grpc.ControlStub(channel)
+
+        scope = utils.get_scope_id(s2cs) if scope == "" else scope
+        uid = str(uuid.uuid1()) if not mock else "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3"
+
+        click.echo("uid; s2cs; access_token; role")
+        click.echo(f"{uid} {s2cs} {utils.get_access_token(scope)} PROD")
+
+        with futures.ThreadPoolExecutor(max_workers=3) as executor:
+            click.echo("sending client request message")
+            prod_resp_future = executor.submit(
+                client_request, prod_stub, uid, "PROD", num_conn, rate, scope_id=scope
+            )
+            click.echo("waiting for hello message")
+            time.sleep(0.5)
+            receivers = [f"{remote_ip}:{port}" for port in receiver_ports.split(",")]
+            click.echo("sending for hello message")
+            hello_response_future = executor.submit(
+                hello_request, prod_stub, uid, "PROD", receivers, scope_id=scope
+            )
+            prod_resp = prod_resp_future.result()
+            hello_response = hello_response_future.result()
+        if hello_response is None:
+            return  # Exit if hello message failed
+
+        print(prod_resp)  # Should this be printed?
+        # Extracting listeners
+        prod_lstn = prod_resp.listeners
+        destination_ports = prod_resp.prod_listeners
+        update(prod_stub, uid, destination_ports, "PROD", scope_id=scope)
+        print(prod_resp.listeners)
+
+
+@cli.command()
+@click.option("--num_conn", type=int, default=5)
+@click.option("--rate", type=int, default=10000)
+@click.option("--s2cs", default="localhost:5000")
+@click.option(
+    "--server_cert", default="server.crt", help="Path to the server certificate file"
+)
+@click.option("--mock", default=False)
+@click.option("--scope", default="")
 def prod_req(num_conn, rate, s2cs, server_cert, mock, scope):
     with open(server_cert, "rb") as f:
         trusted_certs = f.read()
@@ -162,6 +215,7 @@ def prod_req(num_conn, rate, s2cs, server_cert, mock, scope):
                 client_request, prod_stub, uid, "PROD", num_conn, rate, scope_id=scope
             )
             prod_resp = prod_resp_future.result()
+
         print(prod_resp)  # Should this be printed?
         # Extracting listeners
         prod_lstn = prod_resp.listeners
@@ -178,23 +232,41 @@ def prod_req(num_conn, rate, s2cs, server_cert, mock, scope):
 @click.option(
     "--server_cert", default="server.crt", help="Path to the server certificate file"
 )
+@click.option("--remote_ip", default="localhost")
+@click.option(
+    "--receiver_ports",
+    default="5074,5075,5076,37000,47000",
+    help="Comma-separated list of receiver ports",
+)
 @click.argument("uid")
 @click.argument("prod_lstn")
-def cons_req(
-    num_conn, rate, s2cs, scope, server_cert, uid, prod_lstn
+def outbound_request(
+    num_conn, rate, s2cs, scope, server_cert, remote_ip, receiver_ports, uid, prod_lstn
 ):  # uid and prod_lstn are dependencies from PROD context
     with open(server_cert, "rb") as f:
         trusted_certs = f.read()
         credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
     with grpc.secure_channel(s2cs, credentials) as channel:
         cons_stub = scistream_pb2_grpc.ControlStub(channel)
-        if scope == "":
-            scope = utils.get_scope_id(s2cs)
+
+        scope = utils.get_scope_id(s2cs) if scope == "" else scope
+
+        click.echo("uid; s2cs; access_token; role")
         click.echo(f"{uid} {s2cs} {utils.get_access_token(scope)} CONS")
-        with futures.ThreadPoolExecutor(max_workers=2) as executor:
+
+        with futures.ThreadPoolExecutor(max_workers=3) as executor:
+            click.echo("sending client request message")
             cons_resp_future = executor.submit(
                 client_request, cons_stub, uid, "CONS", num_conn, rate, scope_id=scope
             )
+            click.echo("waiting for hello message")
+            time.sleep(0.5)
+            receivers = [f"{remote_ip}:{port}" for port in receiver_ports.split(",")]
+
+            hello_response_future = executor.submit(
+                hello_request, cons_stub, uid, "PROD", receivers, scope_id=scope
+            )
+
             cons_resp = cons_resp_future.result()
         cons_lstn = cons_resp.listeners
         # Update the cons_stub
@@ -227,6 +299,23 @@ def client_request(stub, uid, role, num_conn, rate, scope_id="", metadata=None):
             sys.exit(1)
         else:
             click.echo(f"Another GRPC error occurred: {e.details()}")
+
+
+@utils.authorize
+def hello_request(stub, uid, role, listeners, scope_id="", metadata=None):
+    hello_req = scistream_pb2.Hello(uid=uid, role=role)
+    hello_req.prod_listeners.extend(listeners)
+    try:
+        response = stub.hello(hello_req, metadata=metadata)
+        click.echo("Hello message sent successfully")
+        return response
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.UNAUTHENTICATED:
+            click.echo(f"Please obtain new credentials: {e.details()}")
+            sys.exit(1)
+        else:
+            click.echo(f"Error sending hello message: {e.details()}")
+        return None
 
 
 @utils.authorize

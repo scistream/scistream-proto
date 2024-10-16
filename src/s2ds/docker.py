@@ -1,7 +1,8 @@
 
 from pathlib import Path
+import docker
 from jinja2 import Environment, FileSystemLoader
-from src.s2ds.utils import DockerPlugin, DockerSockPlugin, JanusPlugin, get_config_path
+from src.s2ds.utils import get_config_path
 
 
 class ProxyContainer:
@@ -25,11 +26,12 @@ class ProxyContainer:
     def update_listeners(self, listeners, s2ds_proc, uid, role="PROD"):
         if self.service_plugin_type == "docker":
             docker_client = DockerPlugin()
+        """
         if self.service_plugin_type == "janus":
             docker_client = JanusPlugin()
         if self.service_plugin_type == "dockersock":
             docker_client = DockerSockPlugin()
-
+        """
         vars = {
             "local_ports": self.local_ports,
             "dest_array": listeners,
@@ -112,3 +114,19 @@ class Stunnel(ProxyContainer):
             self.cfg_filename = "/data/scistream-demo/configs/stunnel.conf"
             self.key_filename = "/data/scistream-demo/configs/stunnel.key"
         pass
+
+
+
+class DockerPlugin:
+    def __init__(self):
+        self.client = docker.from_env()
+
+    def start(self, name, container_config):
+        try:
+            container = self.client.containers.get(name)
+            print(f"Container {name} already exists")
+            container.restart()
+        except docker.errors.NotFound:
+            print(f"Creating container {name}")
+            container = self.client.containers.run(**container_config)
+        print(f"Started container with ID {container.id}")

@@ -2,31 +2,11 @@ import os
 import logging
 import subprocess
 from pathlib import Path
-from typing import Union
-
-from src.s2cs import S2CSException
-from src.s2ds.docker import Haproxy, Nginx, Stunnel
-from src.s2ds.subproc import StunnelSubprocess
-
 
 class S2DSException(Exception):
     pass
-
-
-def create_instance(instance_type: str) -> Union[Haproxy, Nginx, Stunnel, StunnelSubprocess, None]:
-    if instance_type == "Haproxy":
-        return Haproxy()
-    elif instance_type == "Nginx":
-        return Nginx()
-    elif instance_type == "Stunnel":
-        return Stunnel()
-    elif instance_type == "StunnelSubprocess":
-        return StunnelSubprocess()
-    else:
-        print(f"Unsupported instance type: {instance_type}")
-        return None
     
-
+    
 def get_config_path():
     # Check if the environment variable for HAProxy config path is set
     config_path = os.environ.get("HAPROXY_CONFIG_PATH")
@@ -104,7 +84,7 @@ class S2DS:
             curr_proc = s2ds_proc[i]
             curr_remote_conn = listeners[i] + "\n"
             if curr_proc.poll() is not None:
-                raise S2CSException(
+                raise S2DSException(
                     f"S2DS subprocess with PID '{curr_proc.pid}' unexpectedly quit"
                 )
             curr_proc.stdin.write(curr_remote_conn.encode())

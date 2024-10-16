@@ -1,0 +1,40 @@
+---
+- hosts: all
+  gather_facts: no
+  tasks:
+    - name: Update apt cache
+      become: yes
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      become: yes
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - stunnel4
+          - iperf3
+          - python3-pip
+        state: present
+
+    - name: Read pyproject.toml
+      become: no
+      delegate_to: localhost
+      slurp:
+        src: "../pyproject.toml"
+      register: pyproject_content
+
+    - name: Extract package name and version
+      become: no
+      delegate_to: localhost
+      set_fact:
+        package_name: "{{ (pyproject_content['content'] | b64decode | regex_search('name\\s*=\\s*\"([^\"]+)\"', '\\1'))[0] }}"
+        package_version: "{{ (pyproject_content['content'] | b64decode | regex_search('version\\s*=\\s*\"([^\"]+)\"',
+'\\1'))[0] }}"
+
+    - name: Install specific version of the package
+      pip:
+        name: "/vagrant/dist/{{ package_name | replace('-', '_') }}-{{ package_version }}-py3-none-any.whl"
