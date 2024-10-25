@@ -30,7 +30,7 @@ class MockS2DS(S2DS):
         # Define your mocked behavior here (if needed)
         pass
 
-    def update_listeners(self, listeners, s2ds_proc, uid):
+    def update_listeners(self, listeners, s2ds_proc, uid, role):
         # Define your mocked behavior here (if needed)
         pass
 
@@ -260,6 +260,35 @@ def test_full_stunnel():
     s2cs_producer.update(update)
     assert True
 
+## FIXTHIS improve ASSERTION
+@pytest.mark.timeout(5)
+def test_full_stunnel_subproc():
+    s2cs_producer = S2CS(listener_ip="192.168.10.11", type="StunnelSubprocess", verbose=True)
+    hello = Hello(
+        uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3",
+        role="PROD",
+        prod_listeners=[
+            "192.168.10.10:5084",
+            "192.168.10.10:5085",
+            "192.168.10.10:5086",
+        ],
+    )
+    request = Request(
+        uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", role="PROD", num_conn=3, rate=10000
+    )
+    with futures.ThreadPoolExecutor(max_workers=2) as executor:
+        req_future = executor.submit(lambda: s2cs_producer.req(request))
+        time.sleep(0.5)
+        hello_future = executor.submit(lambda: s2cs_producer.hello(hello))
+        req_response = req_future.result(timeout=2)
+    # Update the prod_stub
+    update = UpdateTargets(
+        uid="4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3",
+        remote_listeners=req_response.prod_listeners,
+        role="PROD",
+    )
+    s2cs_producer.update(update)
+    assert True
 
 """
 @pytest.mark.xfail

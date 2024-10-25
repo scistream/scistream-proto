@@ -34,6 +34,8 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self,
         listener_ip,
         verbose,
+        start_port=5100,
+        end_port=5200,
         type="Haproxy",
         client_id=default_cid,
         client_secret=default_secret,
@@ -44,6 +46,10 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.client_id = client_id
         self.client_secret = client_secret
         self.type = type
+        self.start_port = start_port
+        self.end_port= end_port
+        self.used_ports=set()
+
         # Moving checker instantiation to the begginning, this was making the request take too long
         if self.client_secret != "":
             self.checker = TokenChecker(
@@ -70,8 +76,17 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         self.logger.debug(
             f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}"
         )
-        self.s2ds = create_instance(self.type)
-        reply = self.s2ds.start(request.num_conn, self.listener_ip)
+        ##FIXTHIS start function should be the same for all implementations
+        if self.type == "StunnelSubprocess":
+            self.s2ds = create_instance(self.type, self.logger)
+            ports = self.get_available_ports(request.num_conn)
+            self.logger.debug(
+                f"Available ports: {ports}"
+            )
+            reply = self.s2ds.start(request.num_conn, self.listener_ip, ports)
+        else:
+            self.s2ds = create_instance(self.type)
+            reply = self.s2ds.start(request.num_conn, self.listener_ip)
         self.resource_map[request.uid].update(reply)
         ##DEBUG message here show resource map
         hello_received = self.resource_map[request.uid]["hello_received"].wait(
@@ -100,6 +115,9 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         else:
             ##outbound proxy
             # TODO write a test case for this
+            listeners = [
+                listeners[i % len(listeners)] for i in range(entry["num_conn"])
+            ]
             entry["prods2cs_listeners"] = listeners
             # Include remote listeners for transparency to user
         self.s2ds.update_listeners(
@@ -170,11 +188,31 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         auth_state = self.checker.check_token(access_token)
         return len(auth_state.identities) > 0
         # return False
+    
+    def get_available_ports(self, num_conn):
+        ## Given port range tuple, given used ports set
+        ## returns the first n ports available using sequential allocation strategy.
+        ## until num_connections
+        available = []
+        self.logger.debug(
+                f"Port_range: {self.start_port, self.end_port}"
+            )
+        self.logger.debug(
+                f"Used_ports: {self.start_port, self.end_port}"
+            )
+        for port in range(self.start_port, self.end_port +1):
+            if port not in self.used_ports:
+                available.append(port)
+                if len(available) == num_conn:
+                    break
+        self.used_ports.update(available)
+        return available
 
 
 def start(
     listener_ip="0.0.0.0",
     port=5000,
+    port_range = "5100-5200",
     type="S2DS",
     v=False,
     verbose=False,
@@ -188,17 +226,20 @@ def start(
     Starts a gRPC implementation of Scistream server.
 
     Args:
-        listener_ip (str): IP address on which the server listens. Defaults to '0.0.0.0'.
-        port (int): Port number on which the server listens. Defaults to 5000.
-        type (str): Specifies the type of server to start. Options are 'S2DS', 'Nginx', 'Haproxy'.
+        listener_ip (str): IP address on which the control server listens. Defaults to '0.0.0.0'.
+        port (int): Control Channel port number on which the gRPC server listens. Defaults to 5000.
+        port_range: Hyphenated string specifying the port range for S2DS. Defaults to "5100-5200"
+        type (str): Specifies the type of server to start. Options are 'S2DS', 'Nginx', 'Haproxy', 'StunnelSubprocess'.
                     'Haproxy' is the default type.
-        v or verbose (bool): Enables basic verbosity. Defaults to False.
-        client_id (str): Client ID for authentication. Defaults to value of 'default_cid'.
-        client_secret (str): Client secret for authentication. Defaults to value of 'default_secret'.
+        v or verbose (bool): Enables detailed logging and debug output . Defaults to False.
+        client_id (str): Client ID for Globus Auth. Defaults to value of 'default_cid'.
+        client_secret (str): Client secret for Globus Auth. Defaults to value of 'default_secret'.
         version (bool): Prints the version of the package.
-        server_crt (str): Path to the server certificate file. Defaults to 'server.crt'.
+        server_crt (str): Path to the SSL/TLS certificate file. Defaults to 'server.crt'.
         server_key (str): Path to the server key file. Defaults to 'server.key'.
     """
+
+    ## Better input validation will provide better error messages
     if version:
         print(f"s2cs, version: {__version__}")
         return
@@ -206,10 +247,21 @@ def start(
         private_key = f.read()
     with open(server_crt, "rb") as f:
         certificate_chain = f.read()
+    if "-" not in port_range:
+        raise ValueError("port_range must be hyphenated")
+    start_port, end_port = port_range.split("-")
+    if int(start_port) > int(end_port):
+        raise ValueError("Start port must be less than or equal to end port")
     server_credentials = grpc.ssl_server_credentials([(private_key, certificate_chain)])
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        servicer = S2CS(listener_ip, (v or verbose), type, client_id, client_secret)
+        servicer = S2CS( listener_ip = listener_ip,
+                         verbose = (v or verbose), 
+                         type = type, 
+                         client_id = client_id, 
+                         client_secret = client_secret, 
+                         start_port = int(start_port), 
+                         end_port = int(end_port))
         scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
         server.add_secure_port(f"[::]:{port}", server_credentials)
         server.start()

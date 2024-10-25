@@ -151,9 +151,12 @@ def release(uid, s2cs, server_cert, metadata=None):
 def inbound_request(
     num_conn, rate, s2cs, server_cert, mock, scope, remote_ip, receiver_ports
 ):
-    with open(server_cert, "rb") as f:
-        trusted_certs = f.read()
-        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+    try:
+        with open(server_cert, "rb") as f:
+            trusted_certs = f.read()
+    except:
+        trusted_certs = None
+    credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
     with grpc.secure_channel(s2cs, credentials) as channel:
         prod_stub = scistream_pb2_grpc.ControlStub(channel)
 
@@ -175,6 +178,7 @@ def inbound_request(
             hello_response_future = executor.submit(
                 hello_request, prod_stub, uid, "PROD", receivers, scope_id=scope
             )
+            click.echo("sending for hello message")
             prod_resp = prod_resp_future.result()
             hello_response = hello_response_future.result()
         if hello_response is None:
@@ -245,7 +249,7 @@ def outbound_request(
 ):  # uid and prod_lstn are dependencies from PROD context
     with open(server_cert, "rb") as f:
         trusted_certs = f.read()
-        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+    credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
     with grpc.secure_channel(s2cs, credentials) as channel:
         cons_stub = scistream_pb2_grpc.ControlStub(channel)
 

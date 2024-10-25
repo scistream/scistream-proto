@@ -2,25 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
-## [UNRELEASED]
+## [1.1.6] - Various deployments improvements
 
-The development process has been improved. We introduce an ansible playbook for vagrant development providing a better documented procedure for installation of Scistream. We also have a 
+In order to provide a better documented procedure for installation we introduced an ansible playbook for vagrant development. We also have a 
 scistream.yml playbook that should represent the procedure for running Scistream.
 
-We developed a subprocess plugin for running Stunnel specifically, this should later be generalized to run the other types of proxies.
+We created and published a consolidated scistream deployment container. 
 
-We improved Control Server logging for auditing purposes.
+In order to remove the docker dependency, we developed a subprocess plugin for running S2DS, this version runs Stunnel specifically, this should later be generalized to run the other types of proxies. 
+
+We implemented a port reservation mechanism at S2CS for the Stunnel implementation. This needs to be revised because it breaks separation of concerns between S2CS and S2DS.
+
+When using verbose a app.log file is now created for better logging and auditing 
 
 We consolidated S2UC commands so that the appcontroller functionality is now integrated into the initial request.
 
 ### Breaking changes
- - This version jeopardizes the cons-req command
+ - This version deprecates the cons-req command
 
 ### [Added]
- - Dockerless Stunnel implementation
+ - S2DS implementation for Stunnel using Subprocesses
  - inbound-request new S2UC command that  integrates appcontroller
  - S2DS pytests
  - Provisioning Ansible playbook for vagrant development environment
+ - Consolidated Scistream container with all dependencies included.
+ - get_available_ports function in S2CS for port reservation
+ - port_range configuration parameter for S2CS
+
+### [Modified]
+ - set_verbosity functionality to log to file
 
 ### 
 

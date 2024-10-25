@@ -4,19 +4,20 @@ from pathlib import Path
 from src.s2ds.utils import get_config_path
 from jinja2 import Environment, FileSystemLoader
 
+
 class StunnelSubprocess:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, logger=None):
+
+        self.logger = logger if logger else logging.getLogger(__name__)
         self.cfg_filename = "stunnel.conf"
 
-    def start(self, num_conn, listener_ip):
+    def start(self, num_conn, listener_ip, ports=[5074]):
         ## better terminology is reserve instead of start
-        self.logger.info(f"Reserving Stunnel ports...")
-        # Hardcoding local ports for now
-        self.local_ports = [5074, 5075, 5076, 6000, 6001]
+        self.logger.info(f"Reserving Stunnel ports: {ports}")
+        self.local_ports=ports
         entry = {
             "s2ds_proc": [],
-            "listeners": [f"{listener_ip}:{port}" for port in self.local_ports],
+            "listeners": [f"{listener_ip}:{port}" for port in ports[:num_conn]],
         }
         return entry
 
@@ -39,6 +40,7 @@ class StunnelSubprocess:
     def update_listeners(self, listeners, s2ds_proc, uid, role):
         ## actively trying to update mutable object s2ds_proc
         # better terminology is program destination.
+        self.logger.info(listeners)
         config_path = self.generate_stunnel_config(uid, listeners, role)
         new_proc = subprocess.Popen(
             ["stunnel", config_path],
@@ -71,3 +73,4 @@ class StunnelSubprocess:
         ## key content must follow some openssl rules
         key_filename.write_text("client1:" + uid.replace("-", ""))
         return str(config_path)
+    
