@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.s2ds.subproc import StunnelSubprocess, get_config_path
+from src.s2ds.subproc import StunnelSubprocess, get_config_path, HaproxySubprocess
 
 
 @pytest.fixture
@@ -28,11 +28,18 @@ def mock_home(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
     return tmp_path
 
-
 @pytest.fixture
 def stunnel_subprocess():
     return StunnelSubprocess()
 
+@pytest.fixture
+def s2ds_fixture():
+    def _make_subprocess(type):
+        if type == "stunnel":
+            return StunnelSubprocess()
+        if type == "haproxy":
+            return HaproxySubprocess()
+    return _make_subprocess
 
 @pytest.fixture(autouse=True)
 def cleanup_processes():
@@ -118,7 +125,7 @@ def test_generate_stunnel_config_content(stunnel_subprocess):
     dest_array = ["192.168.1.1:443"]
     role = "CONS"
     stunnel_subprocess.start(5, "127.0.0.1", [443])
-    config_path = stunnel_subprocess.generate_stunnel_config(uid, dest_array, role)
+    config_path = stunnel_subprocess.generate_config(uid, dest_array, role)
 
     with open(config_path, "r") as f:
         content = f.read()
@@ -139,19 +146,20 @@ def test_update_listeners(stunnel_subprocess, role):
     if s2ds_proc[0].poll() is None:
         s2ds_proc[0].terminate()
 
-
-def test_full_cycle(stunnel_subprocess):
-    entry = stunnel_subprocess.start(5, "127.0.0.1", [5001, 5002, 5003, 5004, 5005])
+@pytest.mark.parametrize("type", ["stunnel", "haproxy"])
+def test_full_cycle(s2ds_fixture, type):
+    s2ds = s2ds_fixture(type)
+    entry = s2ds.start(5, "127.0.0.1", [5001, 5002, 5003, 5004, 5005])
     assert len(entry["listeners"]) == 5
 
-    stunnel_subprocess.update_listeners(
-        entry["listeners"], entry["s2ds_proc"], "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", "CONS"
+    s2ds.update_listeners(
+        ["127.0.0.1:8000", "127.0.0.1:8001", "127.0.0.1:8002", "127.0.0.1:8003", "127.0.0.1:8004"], entry["s2ds_proc"], "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", "CONS"
     )
     time.sleep(0.5)
     assert len(entry["s2ds_proc"]) == 1
     assert entry["s2ds_proc"][0].poll() is None
 
-    stunnel_subprocess.release(entry)
+    s2ds.release(entry)
     time.sleep(0.1)
     assert isinstance(entry["s2ds_proc"][0], int)
 
@@ -168,7 +176,7 @@ def test_start_multiple_subprocesses(stunnel_subprocess, ports, uid):
     assert len(entry["listeners"]) == 2
 
     stunnel_subprocess.update_listeners(
-        entry["listeners"], entry["s2ds_proc"], "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", "CONS"
+        ["127.0.0.1:8000", "127.0.0.1:8001"], entry["s2ds_proc"], "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3", "CONS"
     )
     time.sleep(0.5)
 
