@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - Consolidated deployment efforts and release
+
+We created a Dockerfile and published a consolidated scistream deployment container. It uses the subprocess implementation and starts Stunnel and Haproxy services. This hasn't been tested extensively.
+
+We also created a "abstract" parent class for all the subprocess plugins, current implementations are haproxy and stunnel.
+
+Improved a few testings
+
 ## [1.1.6] - Various deployments improvements
 
 In order to provide a better documented procedure for installation we introduced an ansible playbook for vagrant development. We also have a 
 scistream.yml playbook that should represent the procedure for running Scistream.
-
-We created and published a consolidated scistream deployment container. 
 
 In order to remove the docker dependency, we developed a subprocess plugin for running S2DS, this version runs Stunnel specifically, this should later be generalized to run the other types of proxies. 
 
