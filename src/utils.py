@@ -147,11 +147,24 @@ def get_access_token(scope_id):
     return auth_data['access_token']
 
 def set_verbosity(self, verbose):
-    #grpc_logger.setLevel(logging.DEBUG if verbose else logging.INFO)
     self.logger = logging.getLogger(__name__)
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(fmt="%(message)s")
-    self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-    handler.setLevel(logging.DEBUG if verbose else logging.INFO)
-    handler.setFormatter(formatter)
-    self.logger.addHandler(handler)
+    self.logger.setLevel(logging.DEBUG)
+
+    # Setup file logging
+    file_handler = logging.FileHandler('app.log')
+    file_handler.setLevel(logging.DEBUG)
+    file_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(file_format)
+    self.logger.addHandler(file_handler)
+
+    # Setup console logging
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter("%(message)s"))
+    
+    if verbose:
+        console_handler.setLevel(logging.DEBUG)
+    else:
+        console_handler.setLevel(logging.INFO)
+    
+    self.logger.addHandler(console_handler)
+    self.logger.info(f"Logger set up: {verbose}")

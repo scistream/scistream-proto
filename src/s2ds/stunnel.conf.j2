@@ -3,11 +3,12 @@
 ; Global Options
 fips = no
 ; Specify the pre-shared key file
-PSKsecrets = /etc/stunnel/stunnel.key
+PSKsecrets = {{ key_filename }}
 securityLevel = 0
 debug = 7
 foreground = yes
 sslVersionMax = TLSv1.2
+pid = {{ pid_filename }}
 
 {% for dst in dest_array %}
 ; PSK Client Configuration

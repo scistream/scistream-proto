@@ -1,0 +1,69 @@
+---
+- name: Test python packages
+  hosts: all
+  gather_facts: no
+  vars:
+    s2uc: /home/vagrant/.local/bin/s2uc
+    s2cs: /home/vagrant/.local/bin/s2cs
+  tasks:
+  - name: Run version commands and print output
+    ansible.builtin.command: "{{ item }}"
+    register: version_output
+    loop:
+      - "{{s2uc}} --version"
+      - "{{s2cs}} --version"
+    changed_when: false
+
+  - name: Display version information
+    ansible.builtin.debug:
+      msg: "{{ item.cmd }} output: {{ item.stdout }}"
+    loop: "{{ version_output.results }}"
+
+- name: Start producer
+  hosts: producers2
+  gather_facts: no
+  vars:
+    s2uc: /home/vagrant/.local/bin/s2uc
+    s2cs: /home/vagrant/.local/bin/s2cs
+  tasks:
+  - name: Copy the private key for the digital certificate to S2CS
+    copy:
+      src: /vagrant/server.key
+      dest: /home/vagrant/server.key
+      remote_src: yes
+
+  - name: Copy the chain certificate for the digital certificate to S2CS
+    copy:
+      src: /vagrant/server.crt
+      dest: /home/vagrant/server.crt
+      remote_src: yes
+
+  - name: Start S2CS service
+    ansible.builtin.command: "{{ s2cs }} --verbose --port=5007 --listener-ip=192.168.10.11 --type=StunnelSubprocess"
+    register: version_output
+    changed_when: false
+
+- name: Start producer
+  hosts: producer
+  gather_facts: no
+  vars:
+    s2uc: /home/vagrant/.local/bin/s2uc
+    s2cs: /home/vagrant/.local/bin/s2cs
+  tasks:
+  - name: Copy the chain certificate for the digital certificate to S2CS
+    copy:
+      src: /vagrant/server.crt
+      dest: /home/vagrant/server.crt
+      remote_src: yes
+
+  - name: Run s2uc commands.
+    ansible.builtin.command: "s2uc prod-req --s2cs 192.168.10.11:5007 --mock True"
+    register: version_output
+    changed_when: false
+
+  - name: Display version information
+    ansible.builtin.debug:
+      msg:  "{{ version_output.stdout }}"
+
+
+
