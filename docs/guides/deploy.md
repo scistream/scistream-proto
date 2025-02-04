@@ -107,5 +107,54 @@ accept = 5100
 connect = 10.140.56.125:5100
 ciphers = eNULL
 ```
+## PBS Script
+Here's a PBS script that includes the stunnel configuration:
+```bash
+#!/bin/bash
+#PBS -l select=1:system=polaris
+#PBS -q debug
+#PBS -l place=scatter
+#PBS -l walltime=1:00:00
+#PBS -l filesystems=home:eagle
+#PBS -A IRIBeta
 
+# Move to working directory
+cd ${PBS_O_WORKDIR}
 
+# Load required modules
+ml use /soft/modulefiles
+ml load spack-pe-base/0.8.1
+ml load apptainer
+
+# Create SciStream configuration directory
+mkdir -p ~/.scistream
+
+# Generate stunnel configuration
+cat > ~/.scistream/stunnel.conf << 'EOL'
+; Stunnel Configuration
+; Global Options
+fips = no
+PSKsecrets = /home/fcastro/.scistream/2d512072-e32e-11ef-9670-6805cae0353e.key
+securityLevel = 0
+debug = 7
+foreground = no
+sslVersionMax = TLSv1.2
+pid = /home/fcastro/.scistream/compute.pid
+
+; PSK Client Configuration
+[5100]
+client = yes
+accept = 5100
+connect = 10.140.56.125:5100
+ciphers = eNULL
+EOL
+
+# Launch SciStream container with stunnel
+apptainer exec scistream2.sif stunnel ~/.scistream/stunnel.conf
+
+# Wait for stunnel to initialize
+sleep 3
+
+# Test the connection
+apptainer exec scistream2.sif bash -c 'echo "testing connection to scistream" | timeout 1 nc localhost 5100'
+```
