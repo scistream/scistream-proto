@@ -188,7 +188,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
         auth_state = self.checker.check_token(access_token)
         return len(auth_state.identities) > 0
         # return False
-    
+
     def get_available_ports(self, num_conn):
         ## Given port range tuple, given used ports set
         ## returns the first n ports available using sequential allocation strategy.
@@ -213,7 +213,7 @@ def start(
     listener_ip="0.0.0.0",
     port=5000,
     port_range = "5100-5200",
-    type="S2DS",
+    type="Haproxy",
     v=False,
     verbose=False,
     client_id=default_cid,
@@ -221,6 +221,7 @@ def start(
     version=False,
     server_crt=default_server_crt,
     server_key=default_server_key,
+    ssl=True,
 ):
     """
     Starts a gRPC implementation of Scistream server.
@@ -237,33 +238,45 @@ def start(
         version (bool): Prints the version of the package.
         server_crt (str): Path to the SSL/TLS certificate file. Defaults to 'server.crt'.
         server_key (str): Path to the server key file. Defaults to 'server.key'.
+        ssl (bool): if False, starts an **unsecured** gRPC server (noSSL). Defaults to True
     """
 
     ## Better input validation will provide better error messages
     if version:
         print(f"s2cs, version: {__version__}")
         return
-    with open(server_key, "rb") as f:
-        private_key = f.read()
-    with open(server_crt, "rb") as f:
-        certificate_chain = f.read()
-    if "-" not in port_range:
-        raise ValueError("port_range must be hyphenated")
-    start_port, end_port = port_range.split("-")
+
+    if ssl:
+        private_key = read_file(server_key)
+        certificate_chain = read_file(server_crt)
+
+    try:
+        start_port, end_port = map(int, port_range.split("-"))
+    except:
+        raise ValueError("Invalid port_range format. Expected 'start-end'.")
     if int(start_port) > int(end_port):
         raise ValueError("Start port must be less than or equal to end port")
-    server_credentials = grpc.ssl_server_credentials([(private_key, certificate_chain)])
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    servicer = S2CS(
+        listener_ip = listener_ip,
+        verbose = (v or verbose),
+        type = type,
+        client_id = client_id,
+        client_secret = client_secret,
+        start_port = int(start_port),
+        end_port = int(end_port)
+    )
+    scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
+
+    if ssl:
+        server_credentials = grpc.ssl_server_credentials([(private_key, certificate_chain)])
+        server.add_secure_port(f"[::]:{port}", server_credentials)  # Start secure server
+        print(f"🔒 Secure gRPC Server started on {listener_ip}:{port}")
+    else:
+        server.add_insecure_port(f"[::]:{port}")  # Start unsecure server
+        print(f"⚠️  Starting INSECURE gRPC server on {listener_ip}:{port}")
     try:
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        servicer = S2CS( listener_ip = listener_ip,
-                         verbose = (v or verbose), 
-                         type = type, 
-                         client_id = client_id, 
-                         client_secret = client_secret, 
-                         start_port = int(start_port), 
-                         end_port = int(end_port))
-        scistream_pb2_grpc.add_ControlServicer_to_server(servicer, server)
-        server.add_secure_port(f"[::]:{port}", server_credentials)
         server.start()
         print(f"Secure Server started on {listener_ip}:{port}")
         server.wait_for_termination()
@@ -271,7 +284,6 @@ def start(
         servicer.release_all()
         print("\nTerminating server")
         sys.exit(0)
-
 
 def main():
     fire.Fire(start)

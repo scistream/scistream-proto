@@ -12,27 +12,8 @@ from concurrent import futures
 from src.proto.scistream_pb2 import Request, AppResponse, Response, UpdateTargets, Hello
 from src.s2cs import S2CS, S2CSException
 from src.s2ds.utils import S2DS
+from src.s2ds.s2ds import MockS2DS
 from src.utils import ValidationException
-
-
-class MockS2DS(S2DS):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def start(self, num_conn, listener_ip):
-        # Define your mocked behavior here
-        return {
-            "s2ds_proc": [mock.MagicMock() for _ in range(num_conn)],
-            "listeners": [f"{listener_ip}:500{i}" for i in range(num_conn)],
-        }
-
-    def release(self, entry):
-        # Define your mocked behavior here (if needed)
-        pass
-
-    def update_listeners(self, listeners, s2ds_proc, uid, role):
-        # Define your mocked behavior here (if needed)
-        pass
 
 
 @pytest.fixture(scope="function")
