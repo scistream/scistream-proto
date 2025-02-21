@@ -7,7 +7,7 @@ from pathlib import Path
 
 from globus_sdk.tokenstorage import SQLiteAdapter
 
-from grpc import StatusCode
+from grpc import StatusCode, RpcError
 
 class ValidationException(Exception):
     ##
@@ -96,6 +96,26 @@ def authorize(func):
         return func(*args, **kwargs)
     return wrapper
 
+def handle_grpc_errors(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except RpcError as e:
+            if e.code() == StatusCode.UNAUTHENTICATED:
+                print(f"Authentication failed: {e.details()}")
+                sys.exit(1)
+            print(f"gRPC error in {func.__name__}: {e.details()}")
+            return None
+        except Exception as e:
+            print(f"Error in {func.__name__}: {str(e)}")
+            return None
+    return wrapper
+
+def read_file(filename):
+    with open(filename, "rb") as f:
+        return f.read()
+
 # TODO Create configuration subsystem instead of hardcoding CLIENT ID values
 def get_scope_id(s2cs):
     scope_map={
@@ -160,11 +180,11 @@ def set_verbosity(self, verbose):
     # Setup console logging
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(logging.Formatter("%(message)s"))
-    
+
     if verbose:
         console_handler.setLevel(logging.DEBUG)
     else:
         console_handler.setLevel(logging.INFO)
-    
+
     self.logger.addHandler(console_handler)
     self.logger.info(f"Logger set up: {verbose}")
