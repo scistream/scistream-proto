@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.1] -
+## [1.2.1] - Minor modifications
 
 ### [Added]
   - s2cs SSL flag to disable TLS on the control plane.
@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### [Modified]
   - create_instance s2ds implementation, instance type match is no longer case sensitive
   - if there's not match it disables S2DS but S2CS doesn't fail.
+  - Modified a few outputs of s2uc commands
 
 ## [1.2.0] - Consolidated deployment efforts and release
 

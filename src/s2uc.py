@@ -152,44 +152,42 @@ def inbound_request(
     num_conn, rate, s2cs, server_cert, mock, scope, remote_ip, receiver_ports
 ):
     try:
-        with open(server_cert, "rb") as f:
-            trusted_certs = f.read()
-    except:
-        trusted_certs = None
-    credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
-    with grpc.secure_channel(s2cs, credentials) as channel:
-        prod_stub = scistream_pb2_grpc.ControlStub(channel)
+        trusted_certs = open(server_cert, "rb").read()
+        channel = grpc.secure_channel(
+            s2cs,
+            grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+        )
+        with channel:
+            prod_stub = scistream_pb2_grpc.ControlStub(channel)
 
-        scope = utils.get_scope_id(s2cs) if scope == "" else scope
-        uid = str(uuid.uuid1()) if not mock else "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3"
+            scope = utils.get_scope_id(s2cs) if scope == "" else scope
+            uid = "4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3" if mock else str(uuid.uuid1())
 
-        click.echo("uid; s2cs; access_token; role")
-        click.echo(f"{uid} {s2cs} {utils.get_access_token(scope)} PROD")
+            click.echo("uid; s2cs; access_token; role")
+            click.echo(f"{uid} {s2cs} {utils.get_access_token(scope)} PROD")
 
-        with futures.ThreadPoolExecutor(max_workers=3) as executor:
-            click.echo("sending client request message")
-            prod_resp_future = executor.submit(
-                client_request, prod_stub, uid, "PROD", num_conn, rate, scope_id=scope
-            )
-            click.echo("waiting for hello message")
-            time.sleep(0.5)
-            receivers = [f"{remote_ip}:{port}" for port in receiver_ports.split(",")]
-            click.echo("sending for hello message")
-            hello_response_future = executor.submit(
-                hello_request, prod_stub, uid, "PROD", receivers, scope_id=scope
-            )
-            click.echo("sending for hello message")
-            prod_resp = prod_resp_future.result()
-            hello_response = hello_response_future.result()
-        if hello_response is None:
-            return  # Exit if hello message failed
+            with futures.ThreadPoolExecutor(max_workers=3) as executor:
+                receivers = [f"{remote_ip}:{port}" for port in receiver_ports.split(",")]
+                click.echo("sending client request message")
+                prod_resp_future = executor.submit(
+                    client_request, prod_stub, uid, "PROD", num_conn, rate, scope_id=scope
+                )
+                click.echo("waiting for hello message")
+                time.sleep(0.5)
+                click.echo("sending for hello message")
+                hello_response_future = executor.submit(
+                    hello_request, prod_stub, uid, "PROD", receivers, scope_id=scope
+                )
+                prod_resp = prod_resp_future.result(timeout=5)
+                hello_response = hello_response_future.result(timeout=5)
+            if hello_response is None:
+                click.echo("Request Failed, no Hello response")
+                return  # Exit if hello message failed
 
-        print(prod_resp)  # Should this be printed?
-        # Extracting listeners
-        prod_lstn = prod_resp.listeners
-        destination_ports = prod_resp.prod_listeners
-        update(prod_stub, uid, destination_ports, "PROD", scope_id=scope)
-        print(prod_resp.listeners)
+            update(prod_stub, uid, prod_resp.prod_listeners, "PROD", scope_id=scope)
+            click.echo(f"Listeners: {prod_resp.listeners}")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
 
 
 @cli.command()
@@ -259,27 +257,24 @@ def outbound_request(
         click.echo(f"{uid} {s2cs} {utils.get_access_token(scope)} CONS")
 
         with futures.ThreadPoolExecutor(max_workers=3) as executor:
-            click.echo("sending client request message")
-            cons_resp_future = executor.submit(
+            receivers = [f"{remote_ip}:{port}" for port in receiver_ports.split(",")]
+            cons_future = executor.submit(
                 client_request, cons_stub, uid, "CONS", num_conn, rate, scope_id=scope
             )
             click.echo("waiting for hello message")
             time.sleep(0.5)
-            receivers = [f"{remote_ip}:{port}" for port in receiver_ports.split(",")]
 
             hello_response_future = executor.submit(
                 hello_request, cons_stub, uid, "PROD", receivers, scope_id=scope
             )
 
-            cons_resp = cons_resp_future.result()
-        cons_lstn = cons_resp.listeners
-        # Update the cons_stub
-        if "," in prod_lstn:
-            listener_array = prod_lstn.split(",")
-        else:
-            listener_array = [prod_lstn]
+            cons_resp = cons_future.result(timeout=5)
+        if not cons_resp:
+            click.echo("Request failed", err=True)
+            return
+        click.echo(f"Listeners: {cons_resp.listeners}")
+        listener_array = prod_lstn.split(",") if "," in prod_lstn else [prod_lstn]
         update(cons_stub, uid, listener_array, "CONS", scope_id=scope)
-        # prod_lstn is a dependency from PROD context
 
 
 @utils.authorize
