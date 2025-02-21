@@ -1,10 +1,11 @@
 from src.s2ds.docker import Haproxy, Nginx, Stunnel
 from src.s2ds.subproc import StunnelSubprocess, HaproxySubprocess
+from unittest import mock
 from typing import Union
 
-class MockS2DS(S2DS):
+class MockS2DS():
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        pass
 
     def start(self, num_conn, listener_ip):
         return {
@@ -15,7 +16,7 @@ class MockS2DS(S2DS):
     def release(self, entry):
         pass
 
-    def update_listeners(self, listeners, s2ds_proc, uid):
+    def update_listeners(self, listeners, s2ds_proc, uid, role):
         pass
 
 def create_instance(instance_type):
@@ -25,10 +26,10 @@ def create_instance(instance_type):
         "stunnel": Stunnel,
         "stunnelsubprocess": lambda: StunnelSubprocess(logger),
         "haproxysubprocess": lambda: HaproxySubprocess(logger),
-        "mock": lambda: MockS2DS(logger)
+        "mock": MockS2DS
     }
     instance = registry.get(instance_type.lower())
     if not instance:
         print(f"Unsupported S2DS type: {instance_type}. Disabling S2DS")
-        return MockS2DS(logger)
+        return MockS2DS()
     return instance()

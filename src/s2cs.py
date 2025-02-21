@@ -9,7 +9,7 @@ from .proto import scistream_pb2_grpc
 
 from concurrent import futures
 from .s2ds.s2ds import create_instance
-from .utils import request_decorator, set_verbosity, authenticated
+from .utils import request_decorator, set_verbosity, authenticated, read_file
 from globus_action_provider_tools.authentication import TokenChecker
 
 
@@ -278,7 +278,6 @@ def start(
         print(f"⚠️  Starting INSECURE gRPC server on {listener_ip}:{port}")
     try:
         server.start()
-        print(f"Secure Server started on {listener_ip}:{port}")
         server.wait_for_termination()
     except KeyboardInterrupt:
         servicer.release_all()
