@@ -4,11 +4,14 @@ FROM dtnaas/ssh
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install required packages
-RUN apt-get update && apt-get install -y \
-    apt-transport-https \
+RUN apt-get update && apt-get install -y curl gnupg2
+
+# Add Nginx repository
+RUN echo "deb http://nginx.org/packages/mainline/debian bullseye nginx" > /etc/apt/sources.list.d/nginx.list \
+    && curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
+
+RUN apt-get update && apt-get install -y nginx="1.26.2-r1" \
     ca-certificates \
-    curl \
     software-properties-common \
     stunnel4 \
     haproxy \
