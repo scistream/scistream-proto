@@ -77,7 +77,7 @@ class S2CS(scistream_pb2_grpc.ControlServicer):
             f"Added key: '{request.uid}' with entry: {self.resource_map[request.uid]}"
         )
         ##FIXTHIS start function should be the same for all implementations
-        if self.type in ["StunnelSubprocess", "HaproxySubprocess"]:
+        if self.type.lower() in ["stunnelsubprocess", "haproxysubprocess"]:
             self.s2ds = create_instance(self.type, self.logger)
             ports = self.get_available_ports(request.num_conn)
             self.logger.debug(

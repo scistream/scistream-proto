@@ -19,17 +19,18 @@ class MockS2DS():
     def update_listeners(self, listeners, s2ds_proc, uid, role):
         pass
 
-def create_instance(instance_type):
-    registry = {
-        "haproxy": Haproxy,
-        "nginx": Nginx,
-        "stunnel": Stunnel,
-        "stunnelsubprocess": lambda: StunnelSubprocess(logger),
-        "haproxysubprocess": lambda: HaproxySubprocess(logger),
-        "mock": MockS2DS
-    }
-    instance = registry.get(instance_type.lower())
-    if not instance:
-        print(f"Unsupported S2DS type: {instance_type}. Disabling S2DS")
+def create_instance(instance_type: str, logger=None):
+    if instance_type == "Haproxy":
+        return Haproxy()
+    elif instance_type == "Nginx":
+        return Nginx()
+    elif instance_type == "Stunnel":
+        return Stunnel()
+    elif instance_type == "StunnelSubprocess":
+        return StunnelSubprocess(logger)
+    elif instance_type == "HaproxySubprocess":
+        return HaproxySubprocess(logger)
+    else:
+        print(f"Unsupported instance type: {instance_type}")
         return MockS2DS()
-    return instance()
+
