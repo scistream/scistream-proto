@@ -1,7 +1,6 @@
 from src.s2ds.docker import Haproxy, Nginx, Stunnel
 from src.s2ds.subproc import StunnelSubprocess, HaproxySubprocess
 from unittest import mock
-from typing import Union
 
 class MockS2DS():
     def __init__(self, *args, **kwargs):
@@ -19,7 +18,7 @@ class MockS2DS():
     def update_listeners(self, listeners, s2ds_proc, uid, role):
         pass
 
-def create_instance(instance_type: str, logger=None):
+def create_instance(instance_type, logger=None):
     if instance_type == "Haproxy":
         return Haproxy()
     elif instance_type == "Nginx":

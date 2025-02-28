@@ -238,7 +238,8 @@ def start(
         version (bool): Prints the version of the package.
         server_crt (str): Path to the SSL/TLS certificate file. Defaults to 'server.crt'.
         server_key (str): Path to the server key file. Defaults to 'server.key'.
-        ssl (bool): if False, starts an **unsecured** gRPC server (noSSL). Defaults to True
+        ssl (bool): if False, starts an **unsecured** gRPC server (noSSL). Defaults to True.
+            SECURITY WARNING: Disabling SSL exposes control plane traffic. Only use in secure networks or for testing.
     """
 
     ## Better input validation will provide better error messages
