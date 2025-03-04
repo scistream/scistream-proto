@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Earthquake Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .info {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .earthquake {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .earthquake:hover {
+            background-color: #f5f5f5;
+        }
+        .magnitude {
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: white;
+            display: inline-block;
+            width: 30px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        .mag-1 { background-color: #2196F3; } /* Blue */
+        .mag-2 { background-color: #4CAF50; } /* Green */
+        .mag-3 { background-color: #FF9800; } /* Orange */
+        .mag-4 { background-color: #F44336; } /* Red */
+        .mag-5 { background-color: #9C27B0; } /* Purple */
+        .refresh-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .refresh-btn:hover {
+            background-color: #45a049;
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>USGS Earthquake Dashboard</h1>
+    
+    <div class="info">
+        <div>
+            <p><strong>Found <span id="count">{{ count }}</span> earthquakes</strong> in the last hour</p>
+            <p><strong>Last updated:</strong> <span id="timestamp">{{ timestamp }}</span></p>
+            <p><span class="status-dot"></span> <small>Live Data Streaming</small></p>
+        </div>
+        <form action="/" method="get">
+            <button type="submit" class="refresh-btn">Refresh Now</button>
+        </form>
+    </div>
+    
+    <div id="earthquakes">
+        {% if count == 0 %}
+            <p>No earthquakes found in the last hour.</p>
+        {% endif %}
+        
+        {% for quake in earthquakes %}
+            <div class="earthquake">
+                {% set mag = quake.properties.mag|float %}
+                
+                {% if mag >= 5.0 %}
+                    <span class="magnitude mag-5">{{ "%.1f"|format(mag) }}</span>
+                {% elif mag >= 4.0 %}
+                    <span class="magnitude mag-4">{{ "%.1f"|format(mag) }}</span>
+                {% elif mag >= 3.0 %}
+                    <span class="magnitude mag-3">{{ "%.1f"|format(mag) }}</span>
+                {% elif mag >= 2.0 %}
+                    <span class="magnitude mag-2">{{ "%.1f"|format(mag) }}</span>
+                {% else %}
+                    <span class="magnitude mag-1">{{ "%.1f"|format(mag) }}</span>
+                {% endif %}
+                
+                <strong>{{ quake.properties.place }}</strong>
+                <br>
+                <small>
+                    Time: {{ (quake.properties.time/1000)|timestamp_to_datetime if quake.properties.time else 'Unknown' }}
+                </small>
+                <br>
+                <small>
+                    <a href="{{ quake.properties.url }}" target="_blank">More info</a>
+                </small>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        // Simple auto-refresh every 30 seconds
+        setTimeout(function() {
+            location.reload();
+        }, 30000);
+        
+        // Connect to server-sent events stream for real-time updates
+        const eventSource = new EventSource('/stream');
+        const countEl = document.getElementById('count');
+        const timestampEl = document.getElementById('timestamp');
+        
+        // When we receive data from the server
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            // Update the displayed count and timestamp
+            timestampEl.textContent = data.timestamp;
+            countEl.textContent = data.count;
+            
+            // If there are new earthquakes, refresh immediately
+            if (data.count > parseInt(countEl.textContent)) {
+                location.reload();
+            }
+        };
+        
+        // Handle connection errors
+        eventSource.onerror = function() {
+            console.error('EventSource connection failed. Reconnecting...');
+        };
+    </script>
+</body>
+</html>
