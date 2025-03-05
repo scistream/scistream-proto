@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - Minor modifications
+
+### [Added]
+  - s2cs SSL flag to disable TLS on the control plane.
+  - MockS2DS type to facilitate API integration
+
+### [Modified]
+  - create_instance s2ds implementation, instance type match is no longer case sensitive
+  - if there's not match it disables S2DS but S2CS doesn't fail.
+  - Modified a few outputs of s2uc commands
+
 ## [1.2.0] - Consolidated deployment efforts and release
 
 We created a Dockerfile and published a consolidated scistream deployment container. It uses the subprocess implementation and starts Stunnel and Haproxy services. This hasn't been tested extensively.
@@ -12,14 +23,14 @@ Improved a few testings
 
 ## [1.1.6] - Various deployments improvements
 
-In order to provide a better documented procedure for installation we introduced an ansible playbook for vagrant development. We also have a 
+In order to provide a better documented procedure for installation we introduced an ansible playbook for vagrant development. We also have a
 scistream.yml playbook that should represent the procedure for running Scistream.
 
-In order to remove the docker dependency, we developed a subprocess plugin for running S2DS, this version runs Stunnel specifically, this should later be generalized to run the other types of proxies. 
+In order to remove the docker dependency, we developed a subprocess plugin for running S2DS, this version runs Stunnel specifically, this should later be generalized to run the other types of proxies.
 
 We implemented a port reservation mechanism at S2CS for the Stunnel implementation. This needs to be revised because it breaks separation of concerns between S2CS and S2DS.
 
-When using verbose a app.log file is now created for better logging and auditing 
+When using verbose a app.log file is now created for better logging and auditing
 
 We consolidated S2UC commands so that the appcontroller functionality is now integrated into the initial request.
 
@@ -38,7 +49,7 @@ We consolidated S2UC commands so that the appcontroller functionality is now int
 ### [Modified]
  - set_verbosity functionality to log to file
 
-### 
+###
 
 ## [1.1.0] - Security Enhancements
 
