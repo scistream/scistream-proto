@@ -1,17 +1,17 @@
-# SciStream User Guide
+# 3. SciStream User Guide
 
-## Overview
+## 3.1 Overview
 
 SciStream is an open source streaming facility API for registering services and mapping them to external IP addresses and ports with a secure data plane connection. It enables a zero-trust security model for scientific data transfer between facilities. SciStream is currently deployed at Advanced Photon Source (APS) and Argonne Leadership Computing Facility (ALCF) with ongoing discussions for deployment at other facilities.
 
-## Use Cases
+## 3.2 Use Cases
 
 This guide covers two primary user experiences:
 
-1. **HPC Service Deployment**: Configuring an inbound proxy at an HPC facility to offer various data processing services
+1. **HPC Service Deployment**: Configuring an inbound proxy at an HPC facility to various components
 2. **Instrument Connection**: Establishing an outbound proxy from a scientific instrument to securely transmit data to an HPC
 
-## Key Components
+## 3.3 Key Components
 
 As a user, you'll interact with these components:
 
@@ -19,11 +19,11 @@ As a user, you'll interact with these components:
 - **SciStream Control Server (S2CS)**: Running at each endpoint, manages connection setup
 - **SciStream Data Server (S2DS)**: Handles the actual data transfer (runs automatically)
 
-## Use Case 1: Deploying a Service at HPC
+## 3.4 Use Case 1: Deploying a Service at HPC
 
 When you want to offer a service from an HPC facility:
 
-### 1. Configure the Inbound Proxy
+### 3.4.1 Configure the Inbound Proxy
 
 ```bash
 s2uc inbound_request --s2cs hpc.facility.org:5000 --remote_ip 10.0.1.5 --receiver_ports 5001
@@ -37,7 +37,7 @@ The command returns:
 
 Share these details with the instrument operators who need to connect to your service.
 
-### 2. Start Your Service
+### 3.4.2 Start Your Service
 
 Ensure your service is running and listening on the specified receiver port:
 
@@ -45,22 +45,17 @@ Ensure your service is running and listening on the specified receiver port:
 # Example: Start a data reconstruction service
 reconstruction_service --listen 5001
 
-# Example: Start a feature extraction service
-feature_extraction --port 5001
-
-# Example: Start a ML-based analysis service
-ml_analyzer --bind 0.0.0.0:5001
 ```
 
-## Use Case 2: Connecting an Instrument to HPC
+## 3.5 Use Case 2: Connecting an Instrument to HPC
 
 When you need to connect an instrument to use a service at an HPC facility:
 
-### 1. Obtain Connection Details
+### 3.5.1 Obtain Connection Details
 
 Get the UID and listener address from the HPC service operator.
 
-### 2. Configure the Outbound Proxy
+### 3.5.2 Configure the Outbound Proxy
 
 ```bash
 s2uc outbound_request --s2cs instrument.facility.org:5000 --remote_ip 192.168.2.10 --receiver_ports 5100 YOUR_UID HPC_LISTENER_ADDRESS
@@ -68,24 +63,18 @@ s2uc outbound_request --s2cs instrument.facility.org:5000 --remote_ip 192.168.2.
 
 This establishes a secure tunnel between your instrument and the HPC service.
 
-### 3. Connect Your Instrument
+### 3.5.3 Connect Your Instrument
 
 Configure your data source software to send data to the local proxy port:
 
 ```bash
 # Example: Configure beamline data source
 beamline_source --output localhost:5100
-
-# Example: Configure microscopy data source
-microscopy_stream --target 127.0.0.1:5100
-
-# Example: Configure sensor array data source
-sensor_array --destination localhost:5100
 ```
 
 Data sent to this port will be securely transmitted to the HPC service.
 
-## Authentication
+## 3.6 Authentication
 
 For secured endpoints (recommended in production):
 
@@ -94,7 +83,7 @@ s2uc login --scope YOUR_SCOPE_ID
 s2uc check-auth --scope YOUR_SCOPE_ID  # Verify authentication
 ```
 
-## Releasing Resources
+## 3.7 Releasing Resources
 
 When finished with a connection:
 
@@ -102,13 +91,13 @@ When finished with a connection:
 s2uc release YOUR_UID --s2cs server.facility.org:5000
 ```
 
-## Common Options
+## 3.8 Common Options
 
 - `--num_conn`: Number of parallel connections (default: 5)
 - `--rate`: Maximum data rate in kb/s (default: 10000)
 - `--server_cert`: Path to SSL certificate for secure connections
 - `--scope`: Authentication scope ID for secured endpoints
 
-## Next Steps
+## 3.9 Next Steps
 
 For detailed examples and advanced configurations, see the [Tutorials](tutorials.md) section.
