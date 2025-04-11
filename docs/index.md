@@ -1,17 +1,36 @@
-# Welcome to SciStream Documentation
+# Welcome to SciStream
 
- This documentation provides an overview of SciStream, guides for users and developers, and information about authentication and security.
+SciStream is a security framework enabling protected, high-speed data streaming between scientific instruments and high-performance computing (HPC) facilities.
 
-## Table of Contents
+## About SciStream
 
-1. [Introduction](introduction.md)
-2. [Understanding SciStream](scistream.md)
-3. [Getting Started](quickstart.md)
-4. [User Guide](guides/user.md)
-5. [Authentication and Security](guides/auth.md)
-6. [Developer Guide](guides/dev.md)
-7. [Changelogs](s/Changelog.md)
+SciStream securely allows participating facilities to make their resources available through a programmatic interface. The framework enables:
+
+- End-to-end encrypted data transfer between instruments and HPC resources
+- Zero-trust security model with strong authentication and authorization
+- Flexible deployment options across institutions and environments
+- Fine-grained access controls for scientific data
+
+## Documentation
+
+### Getting Started
+- [Installation](getting-started/installation.md) - Set up SciStream in your environment
+- [Quickstart](getting-started/quickstart.md) - Get up and running quickly
+
+### Guides
+- [User Guide](guides/user-guide.md) - Using SciStream
+- [Authentication](guides/authentication.md) - Security and access control
+- [Developer Guide](guides/developer-guide.md) - Extending and developing SciStream
+- [Tutorials](guides/tutorials.md) - Step-by-step examples
+
+### Reference
+- [Changelog](reference/changelog.md) - Version history and updates
+- [FAQ](reference/faq.md) - Frequently asked questions
+- [Troubleshooting](reference/troubleshooting.md) - Common issues and solutions
 
 ## Getting Help
 
-If you need further assistance or have any questions, please reach out by creating an issue on github.
+If you need further assistance or have any questions:
+- Create an issue on [GitHub](https://github.com/scistream/scistream-proto)
+- Check the [Troubleshooting Guide](reference/troubleshooting.md)
+- Join our community discussions
