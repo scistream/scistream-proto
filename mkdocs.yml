@@ -3,15 +3,18 @@ theme:
   name: readthedocs
 nav:
   - Home: index.md
+  - Core Concepts:
+    - "1. Introduction": concepts/introduction.md
+    - "2. Understanding SciStream": concepts/understanding.md
   - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quickstart: getting-started/quickstart.md
+    - "3. Installation": getting-started/installation.md
+    - "4. Quickstart": getting-started/quickstart.md
   - Guides:
-    - User Guide: guides/user-guide.md
-    - Authentication: guides/authentication.md
-    - Developer Guide: guides/developer-guide.md
-    - Tutorials: guides/tutorials.md
+    - "5. User Guide": guides/user-guide.md
+    - "6. Authentication": guides/authentication.md
+    - "7. Developer Guide": guides/developer-guide.md
+    - "8. Tutorials": guides/tutorials.md
   - Reference:
+    - "9. Troubleshooting": reference/troubleshooting.md
     - Changelog: reference/changelog.md
     - FAQ: reference/faq.md
-    - Troubleshooting: reference/troubleshooting.md

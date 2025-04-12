@@ -1,13 +1,13 @@
-# 2. Getting Started with Scistream
+# 4. Getting Started with Scistream
 
 A quick reference guide for setting up and running SciStream.
 
-## 2.1 Prerequisites
+## 4.1 Prerequisites
 
 - Docker
 - Python 3.9+
 
-## 2.2 Installation
+## 4.2 Installation
 
 ```bash
 # Using pip
@@ -17,7 +17,7 @@ pip install scistream-proto
 docker pull castroflaviojr/scistream:1.2.1
 ```
 
-## 2.3 Starting the Control Server
+## 4.3 Starting the Control Server
 
 ```bash
 # Start the SciStream Control Server
@@ -27,7 +27,7 @@ s2cs -t Haproxy --verbose
 s2cs -t Haproxy --verbose --client_id="YOUR_CLIENT_ID" --client_secret="YOUR_CLIENT_SECRET"
 ```
 
-## 2.4 Creating Connection Requests
+## 4.4 Creating Connection Requests
 
 ```bash
 # Create inbound request (server side)
@@ -37,7 +37,7 @@ s2uc inbound_request --s2cs localhost:5000 --remote_ip 10.0.1.5 --receiver_ports
 s2uc outbound_request --s2cs localhost:5000 --remote_ip 192.168.2.10 --receiver_ports 5100 UID LISTENER_ADDRESS
 ```
 
-## 2.5 Testing and Managing Connections
+## 4.5 Testing and Managing Connections
 
 ```bash
 # Test an application (mock producer)
@@ -59,7 +59,7 @@ iperf -c localhost -p 5100 -t 60
 
 For more detailed information and advanced usage, please refer to the complete [User Guide](../guides/user-guide.md).
 
-## 2.6 Common Options
+## 4.6 Common Options
 
 ```bash
 # With SSL certificate

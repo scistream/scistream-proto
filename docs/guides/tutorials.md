@@ -1,12 +1,12 @@
-# 4. SciStream Tutorials
+# 8. SciStream Tutorials
 
 This guide provides practical tutorials for working with SciStream, a secure tunneling solution for scientific data transfer.
 
-## 4.1 What is SciStream?
+## 8.1 What is SciStream?
 
 SciStream creates encrypted connections between endpoints, allowing data to flow securely between them, even across network boundaries. It's designed specifically for scientific data transfer needs, providing both security and performance.
 
-## 4.2 Terminology Guide
+## 8.2 Terminology Guide
 
 Before diving into tutorials, it's important to understand key SciStream terminology:
 
@@ -15,7 +15,7 @@ Before diving into tutorials, it's important to understand key SciStream termino
 - **Listeners**: Ports that accept incoming connections
 - **Remote listeners**: The remote destination ports that receive the forwarded connections
 
-## 4.3 Understanding Data Flow
+## 8.3 Understanding Data Flow
 
 ![SciStream Tunnel Setup](../figures/simplified.png)
 
@@ -24,17 +24,17 @@ Before diving into tutorials, it's important to understand key SciStream termino
 3. The SciStream inbound request receives the forwarded connection
 4. Data is delivered to your server application listening on the receiver port
 
-## 4.4 Tutorial Environment
+## 8.4 Tutorial Environment
 
 This tutorial uses a Vagrant-based virtual environment for demonstration purposes. For production environments, you would deploy SciStream directly on your infrastructure.
 
-### 4.4.1 Prerequisites
+### 8.4.1 Prerequisites
 
 - Vagrant installed
 - VirtualBox or similar virtualization software
 - Basic familiarity with command-line operations
 
-### 4.4.2 Setting Up the Vagrant Environment
+### 8.4.2 Setting Up the Vagrant Environment
 
 A reference Vagrant file is provided in the root directory:
 
@@ -44,7 +44,7 @@ vagrant up
 
 This creates several virtual machines that simulate a distributed environment.
 
-## 4.5 SSL/TLS Configuration
+## 8.5 SSL/TLS Configuration
 
 Generate certificates for secure communication:
 
@@ -73,9 +73,9 @@ openssl req -new -key server.key -out server.csr -config server.conf
 openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt -extfile server.conf -extensions v3_req
 ```
 
-## 4.6 Creating a Secure Tunnel
+## 8.6 Creating a Secure Tunnel
 
-### 4.6.1 Step 1: Set Up the Inbound Request (Server Side)
+### 8.6.1 Step 1: Set Up the Inbound Request (Server Side)
 
 Start the control server on the server side:
 
@@ -105,7 +105,7 @@ Listeners: ['192.168.10.11:5100']
 
 **Important**: Note the UID and listener information from the output. You'll need these for the outbound request.
 
-### 4.6.2 Step 2: Set Up the Outbound Request (Client Side)
+### 8.6.2 Step 2: Set Up the Outbound Request (Client Side)
 
 Start the control server on the client side:
 
@@ -123,9 +123,9 @@ s2uc login --scope "abc"
 s2uc outbound_request --s2cs 192.168.30.10:5007 --remote_ip 192.168.20.10 --receiver_ports 5100 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 192.168.10.11:5100
 ```
 
-## 4.7 Testing the Tunnel
+## 8.7 Testing the Tunnel
 
-### 4.7.1 Start Server Application
+### 8.7.1 Start Server Application
 
 On the server side (producer):
 
@@ -134,7 +134,7 @@ vagrant ssh producer
 iperf -s -p 5001
 ```
 
-### 4.7.2 Start Client Application
+### 8.7.2 Start Client Application
 
 On the client side (consumer):
 
@@ -144,7 +144,7 @@ iperf -c 192.168.20.10 -p 5100 -t 60
 
 This initiates a 60-second data stream through the tunnel. Data sent to port 5100 on the client side will be securely transmitted to port 5001 on the server side.
 
-### 4.7.3 Verification
+### 8.7.3 Verification
 
 After setting up both sides of the tunnel, verify that the connection works properly:
 
@@ -153,7 +153,7 @@ After setting up both sides of the tunnel, verify that the connection works prop
 ss -tlpn
 ```
 
-### 4.7.4 Release Resources
+### 8.7.4 Release Resources
 
 When finished, release the allocated resources:
 
@@ -161,7 +161,7 @@ When finished, release the allocated resources:
 s2uc release 4f8583bc-a4d3-11ee-9fd6-034d1fcbd7c3 --s2cs 192.168.10.11:5007
 ```
 
-## 4.8 Container-Based Deployment
+## 8.8 Container-Based Deployment
 
 For production environments, you can use container-based deployment:
 
@@ -169,9 +169,9 @@ For production environments, you can use container-based deployment:
 podman run --rm --net=host -v ./server1:/scistream --entrypoint=s2uc castroflaviojr/scistream:1.2.1 inbound-request --remote_ip 192.168.150.1 --s2cs 192.168.150.1:5000 --receiver_ports 5300 --server_cert=/scistream/server.crt
 ```
 
-## 4.9 Advanced Topics
+## 8.9 Advanced Topics
 
-### 4.9.1 Implementation Types
+### 8.9.1 Implementation Types
 
 SciStream supports multiple data server implementations:
 
@@ -187,7 +187,7 @@ Specify the implementation type when starting S2CS:
 s2cs --type=Haproxy
 ```
 
-### 4.9.2 Port Range Management
+### 8.9.2 Port Range Management
 
 Configure port ranges for data transfer:
 
@@ -197,9 +197,9 @@ s2cs --port-range=10000-20000
 
 This restricts SciStream to using ports in the specified range for data forwarding.
 
-## 4.10 Troubleshooting
+## 8.10 Troubleshooting
 
-### 4.10.1 Common Issues
+### 8.10.1 Common Issues
 
 1. **Connection Refused Error**
    - Check that the s2cs control server is running on both machines
@@ -216,7 +216,7 @@ This restricts SciStream to using ports in the specified range for data forwardi
    - Verify that both machines can reach each other on the specified ports
    - Check for any NAT or routing issues that might affect connectivity
 
-### 4.10.2 Diagnostic Commands
+### 8.10.2 Diagnostic Commands
 
 ```bash
 # Check for running SciStream processes
@@ -226,7 +226,7 @@ ps aux | grep s2
 openssl x509 -in server.crt -text -noout
 ```
 
-## 4.11 Quick Reference
+## 8.11 Quick Reference
 
 | Action | Command Template |
 |--------|------------------|

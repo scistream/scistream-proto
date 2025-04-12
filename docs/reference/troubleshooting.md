@@ -1,12 +1,12 @@
-# 7. Troubleshooting Guide
+# 9. Troubleshooting Guide
 
 This guide helps you solve common issues with SciStream and clarifies potentially confusing terminology.
 
-## 7.1 Understanding SciStream Terminology
+## 9.1 Understanding SciStream Terminology
 
 SciStream uses several technical terms that might be unclear. Here's what they actually mean:
 
-### 7.1.1 Current Terms and Their Meaning
+### 9.1.1 Current Terms and Their Meaning
 
 | Current Term | What It Actually Means | Better Alternative |
 |--------------|------------------------|-------------------|
@@ -18,7 +18,7 @@ SciStream uses several technical terms that might be unclear. Here's what they a
 
 > Note: These alternative terms are recommendations for future versions. Current SciStream code still uses the original terminology.
 
-### 7.1.2 Example of Confusing Output and Its Meaning
+### 9.1.2 Example of Confusing Output and Its Meaning
 
 When you see output like:
 ```
@@ -34,9 +34,9 @@ What this actually means:
 
 Don't be alarmed by `INVALID_TOKEN` - it's just indicating you're in development mode without authentication.
 
-## 7.2 SSL/TLS Certificate Issues
+## 9.2 SSL/TLS Certificate Issues
 
-### 7.2.1 SSL Certificate Errors During Development
+### 9.2.1 SSL Certificate Errors During Development
 
 **Problem:** Certificate validation errors during development.
 
@@ -45,7 +45,7 @@ Don't be alarmed by `INVALID_TOKEN` - it's just indicating you're in development
 s2cs --type=Haproxy --ssl=False
 ```
 
-### 7.2.2 Certificate Management Best Practices
+### 9.2.2 Certificate Management Best Practices
 
 **For Development:**
 - Use self-signed certificates with appropriate Subject Alternative Names (SANs)
@@ -56,7 +56,7 @@ s2cs --type=Haproxy --ssl=False
 - Enable strict validation (default)
 - Regularly rotate certificates before expiration
 
-### 7.2.3 Generating Certificates for Development
+### 9.2.3 Generating Certificates for Development
 
 ```bash
 # Create a configuration file
@@ -81,9 +81,9 @@ openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt -
 
 Replace `YOUR_IP_ADDRESS` with the actual IP address of your server.
 
-## 7.3 Common Issues and Solutions
+## 9.3 Common Issues and Solutions
 
-### 7.3.1 Connection Errors
+### 9.3.1 Connection Errors
 
 **Issue: "Cannot connect to control server"**
 
@@ -101,7 +101,7 @@ Solution:
   ```
 - Restart the S2CS service
 
-### 7.3.2 Port Conflicts
+### 9.3.2 Port Conflicts
 
 **Issue: "Address already in use"**
 
@@ -113,7 +113,7 @@ Solution:
   ps -ef | grep "haproxy\|stunnel\|nginx" && kill <PID>
   ```
 
-### 7.3.3 Authentication Problems
+### 9.3.3 Authentication Problems
 
 **Issue: "Authentication token is invalid for scope..."**
 
@@ -122,7 +122,7 @@ Solution:
 - Re-authenticate: `s2uc login --scope <scope_id>`
 - Ensure S2CS is configured with the correct client ID
 
-### 7.3.4 Data Flow Issues
+### 9.3.4 Data Flow Issues
 
 **Issue: "Data not flowing through the tunnel"**
 
@@ -146,7 +146,7 @@ Solution:
   ps -ef | grep "haproxy\|stunnel\|nginx" && kill <PID>
   ```
 
-## 7.4 Logging and Debugging
+## 9.4 Logging and Debugging
 
 Enable verbose logging:
 ```bash
@@ -159,7 +159,7 @@ cat ~/.scistream/<uid>.conf  # View configuration
 cat ~/.scistream/<uid>.log   # View logs
 ```
 
-## 7.5 Getting Additional Help
+## 9.5 Getting Additional Help
 
 If still experiencing issues:
 

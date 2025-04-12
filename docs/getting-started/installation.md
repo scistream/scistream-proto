@@ -1,4 +1,4 @@
-# 1. Installation
+# 3. Installation
 
 SciStream can be installed using three primary methods:
 
@@ -6,13 +6,13 @@ SciStream can be installed using three primary methods:
 2. [Poetry Installation](#poetry-installation) - Ideal for developers
 3. [Pip Installation](#pip-installation) - For direct package installation
 
-## 1.1 Prerequisites
+## 3.1 Prerequisites
 
 - Python 3.9 or higher
 - pip or poetry (recommended)
 - Docker (for container-based installation)
 
-## 1.2 Docker-based Installation
+## 3.2 Docker-based Installation
 
 SciStream is available as a Docker image, which is the simplest way to get started:
 
@@ -27,7 +27,7 @@ docker volume create scistream-certs
 docker run --net=host -v scistream-certs:/scistream castroflaviojr/scistream:1.2.1 s2uc --version
 ```
 
-## 1.3 Poetry Installation
+## 3.3 Poetry Installation
 
 Poetry provides dependency isolation for development:
 
@@ -47,7 +47,7 @@ poetry build
 pip install dist/*.whl
 ```
 
-## 1.4 Pip Installation
+## 3.4 Pip Installation
 
 You can also install SciStream directly using pip:
 
@@ -55,7 +55,7 @@ You can also install SciStream directly using pip:
 pip install scistream-proto
 ```
 
-## 1.5 Verifying Installation
+## 3.5 Verifying Installation
 
 Verify that SciStream is correctly installed:
 
@@ -63,7 +63,7 @@ Verify that SciStream is correctly installed:
 s2uc --version
 ```
 
-## 1.6 Installing Data Plane Server Components
+## 3.6 Installing Data Plane Server Components
 
 For a complete SciStream deployment, you'll need data plane components that handle the actual data transfer. The subprocess implementation spins up these components in an integrated way:
 
@@ -79,6 +79,6 @@ sudo apt-get install nginx
 sudo apt-get install stunnel4
 ```
 
-## 1.7 Next Steps
+## 3.7 Next Steps
 
 After installation, proceed to the [Quickstart Guide](quickstart.md) to learn how to use SciStream.
