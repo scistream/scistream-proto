@@ -6,7 +6,7 @@ Welcome to the Scistream Documentation. This guide is designed to help you under
 
 Scistream is a framework and toolkit that aims to solve the problem of enabling high-speed (100Gbps+), memory-to-memory data streaming between scientific instruments and remote computing facilities. It addresses the challenges of streaming data in scientific environments where data producers (e.g., scientific instruments) and consumers (e.g., analysis applications) are often located in different institutions with distinct security domains.
 
-![Scistream Architecture](figures/scistream-arch.png "Scistream Architecture")
+![Scistream Architecture](../figures/scistream-arch.png "Scistream Architecture")
 
 Scistream tackles these challenges by providing a middlebox-based architecture with control protocols that establish authenticated and transparent connections between the data producer and consumer while efficiently bridging the different security domains. It integrates with existing authentication and authorization systems, such as Globus Auth, to ensure secure communication between the participating facilities.
 
@@ -18,7 +18,7 @@ Scistream tackles these challenges by providing a middlebox-based architecture w
 - Transparent and efficient connections between data producers and consumers
 - Agnostic to data streaming libraries and applications
 
-For a more detailed explanation of the Scistream protocol and components, please refer to "Understanding Scistream". For further details, you can also review our papers: [HPDC'22](https://dl.acm.org/doi/abs/10.1145/3502181.3531475) and [INDIS'22](https://ieeexplore.ieee.org/document/10024674).
+For a more detailed explanation of the Scistream protocol and components, please refer to [Understanding Scistream](understanding.md). For further details, you can also review our papers: [HPDC'22](https://dl.acm.org/doi/abs/10.1145/3502181.3531475) and [INDIS'22](https://ieeexplore.ieee.org/document/10024674).
 
 ## 1.3 Motivation
 
@@ -30,8 +30,8 @@ For example, Scistream can enable real-time data analysis for synchrotron light 
 
 Participating scientific facilities, typically in independent administrative domains, make their computing resources available through programmatic interfaces to enable wide-area streaming analysis. The Scistream architecture relies on gateway nodes (GNs) and control protocols to create on-demand proxies between an instrument's LAN and the WAN, as shown in Figure 1.1.
 
-![Scistream Architecture Overview](figures/figure1a.png "Figure 1.1")
+![Scistream Architecture Overview](../figures/figure1a.png "Figure 1.1")
 
 Scistream's use of proxies at the transport layer ensures that the architecture is agnostic to streaming application libraries and implementations.
 
-In the next [chapter](scistream.md), we will dive deeper into the Scistream protocol, software components, and their roles in enabling high-speed, secure data streaming between scientific instruments and remote computing facilities.
+In the [next chapter](understanding.md), we will dive deeper into the Scistream protocol, software components, and their roles in enabling high-speed, secure data streaming between scientific instruments and remote computing facilities.

@@ -1,18 +1,20 @@
-site_name: Scistream
+site_name: SciStream
 theme:
   name: readthedocs
 nav:
-  - Index: index.md
-  - 1. Introduction: introduction.md
-  - 2. Understanding SciStream: scistream.md
-  - 3. Getting Started: quickstart.md
-  - 4. User Guide: guides/user.md
-  - 5. Authentication and Security: guides/auth.md
-  - 6. Developer Guide: guides/dev.md
-  - Changelogs: s/Changelog.md
-#  - 7. Full tutorial: guides/tutorial.md
-#  - Use Cases and Examples: use-cases.md
-#  - Changelog: changelog.md
-#  - FAQ: faq.md
-#  - Community and Support: community.md
-#  - Appendices: appendices.md
+  - Home: index.md
+  - Core Concepts:
+    - "1. Introduction": concepts/introduction.md
+    - "2. Understanding SciStream": concepts/understanding.md
+  - Getting Started:
+    - "3. Installation": getting-started/installation.md
+    - "4. Quickstart": getting-started/quickstart.md
+  - Guides:
+    - "5. User Guide": guides/user-guide.md
+    - "6. Authentication": guides/authentication.md
+    - "7. Developer Guide": guides/developer-guide.md
+    - "8. Tutorials": guides/tutorials.md
+  - Reference:
+    - "9. Troubleshooting": reference/troubleshooting.md
+    - Changelog: reference/changelog.md
+    - FAQ: reference/faq.md

@@ -6,7 +6,7 @@ In this page, we will delve into the details of the Scistream protocol, its soft
 
 The Scistream protocol is designed to establish authenticated and transparent end-to-end data streaming connections between a data producer application (ProdApp) at Facility 1 and a data consumer application (ConsApp) at Facility 2. This process is facilitated by a centralized controller, Scistream User Client (S2UC), which interacts with both applications and their respective facility control servers, Scistream Control Servers (S2CS), to manage the streaming setup. The protocol ensures that the necessary resources are allocated and the streaming paths are configured to enable data transfer between the producer and consumer applications.
 
-![Scistream Complete Protocol](figures/scistream-control-protocol.png "Scistream Complete Protocol")
+![Scistream Complete Protocol](../figures/scistream-control-protocol.png "Scistream Complete Protocol")
 
 ### 2.1.1 Request Submission
 
@@ -28,7 +28,7 @@ Scistream has three main software components that participate in the control and
 2. Scistream User Client (S2UC)
 3. Scistream Control Server (S2CS)
 
-![Scistream Software Components](figures/figure1b.png "Scistream Software Components")
+![Scistream Software Components](../figures/figure1b.png "Scistream Software Components")
 
 ### 2.2.1 Scistream Data Server (S2DS)
 
@@ -42,4 +42,4 @@ S2UC is the software that end-users and/or workflow engines/tools interact with 
 
 S2CS runs on the gateway nodes and interacts with S2UC, application controllers for data producer/consumer, and S2DS. It authenticates the user and producer/consumer applications using pre-shared keys. S2CS manages gateway node resources and S2DS, including initiating, monitoring, and terminating S2DS processes. As of release 1.0, Scistream supports this through Docker.
 
-In the next chapter, we will guide you through the process of setting up Scistream.
+In the [next chapter](../getting-started/installation.md), we will guide you through the process of setting up Scistream.
