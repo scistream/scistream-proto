@@ -9,9 +9,9 @@ Expires: October 17, 2025
 
 Abstract
 
-   The SciStream Protocol allows a third-party client to control how incoming packets are
-   translated and forwarded by a Network gateway such as,
-   simple firewall or load-balancer. Additionally it provides a mechanism for
+   The SciStream Protocol allows a third-party client to control how incoming
+   packets are forwarded by a Network gateway such as simple firewall
+   or load-balancer. Additionally it provides a mechanism for
    data plane security via the use of ephemeral credentials per session.
 
    Scistream enables a zero-trust end-to-end secure data streaming session
@@ -53,24 +53,14 @@ Table of Contents
          3.1.2. SciStream Control Server (S2CS) ......................10
          3.1.3. SciStream Data Server (S2DS) .........................11
          3.1.4. Application Controllers ..............................11
-      3.2. Deployment Models ........................................12
-         3.2.1. Science DMZ Integration .............................12
-         3.2.2. HPC Facility Integration ............................13
-      3.3. Protocol Flow ............................................13
-         3.3.1. Resource Negotiation ................................14
-         3.3.2. Request Submission ..................................14
-         3.3.3. Hello Message Exchange ..............................15
-         3.3.4. Connection Establishment ............................16
-         3.3.5. Data Streaming ......................................17
-         3.3.6. Request Release .....................................17
+      3.2. Protocol Flow ............................................13
+         3.2.1. Request Submission ..................................14
+         3.2.2. Hello Message Exchange ..............................14
+         3.2.3. Tunnel Setup ........................................15
+         3.2.4. Data Streaming ......................................16
+         3.2.5. Request Release .....................................16
    4. Protocol Messages .............................................18
       4.1. Message Definitions ......................................18
-         4.1.1. Request Message .....................................18
-         4.1.2. Response Message ....................................19
-         4.1.3. Hello Message .......................................19
-         4.1.4. AppResponse Message .................................20
-         4.1.5. UpdateTargets Message ...............................20
-         4.1.6. Release Message .....................................20
       4.2. Service Definition .......................................21
       4.3. Protocol Buffer Schema ...................................21
    5. Security Framework ............................................22
@@ -82,19 +72,14 @@ Table of Contents
       5.3. Protection Mechanisms ....................................25
          5.3.1. Data Integrity Protection ...........................25
          5.3.2. Data Confidentiality Protection .....................26
-         5.3.3. Protection Levels ...................................26
       5.4. Cross-Domain Security ....................................27
    6. Performance Considerations ....................................28
-      6.1. Memory Buffer Management .................................28
-      6.2. Parallel Streaming Channels ..............................29
-      6.3. Adaptive Rate Control ....................................29
+      6.1. Parallel Streaming Channels ..............................28
    7. Implementation Considerations .................................30
-      7.1. Protocol Buffer Serialization ............................30
-      7.2. gRPC Service Communication ...............................31
-      7.3. Error Handling ..........................................31
-      7.4. Interoperability ........................................33
-         7.4.1. Streaming Library Compatibility .....................33
-         7.4.2. Network Stack Compatibility .........................34
+      7.1. Implementation Flexibility ...............................30
+      7.2. Extensibility ............................................31 
+      7.3. Interoperability ........................................31
+         7.3.1. Streaming Library Compatibility .....................31
    8. Error Codes and Status Messages ...............................34
    9. IANA Considerations ..........................................36
   10. Security Considerations ......................................36
@@ -135,9 +120,9 @@ Table of Contents
 
 1.1. Motivation
 
-   Scientific instrument facilities generate data at unprecedented
-   rates. Use cases such as real-time data analysis and experimental steering
-   need to be processed at remote computing facilities due to local
+   Scientific instrument facilities generate data at ever increasing rates.
+   Use cases such as real-time data analysis and experimental steering
+   often require data to be processed at remote computing facilities due to local
    computational limitations.
 
    Traditional file-based transfer methods introduce
@@ -153,8 +138,7 @@ Table of Contents
    1. Security restrictions often prevent direct connections between facilities
    2. Traditional solutions lack the necessary security mechanisms for cross-domain streaming
    3. Data sensitivity requires robust authentication, integrity, and confidentiality
-   4. High-throughput transfers demand optimized networking protocols
-   5. Authorization and access control must be enforceable across domains
+   4. Authorization and access control must be enforceable across domains
 
    Furthermore, many scientific applications require real-time data processing
    capabilities that cannot be achieved with traditional file-based approaches.
@@ -400,7 +384,6 @@ Table of Contents
    - Provides data buffering if needed
    - Reports status to the S2CS (SHOULD)
    - Implements security protections for data streams (MAY)
-   - Optimizes memory buffer management for high throughput (MAY?)
    - Supports parallel streams for performance scaling (SHOULD)
 
    Multiple implementations of S2DS are supported, including a custom
@@ -436,39 +419,35 @@ Table of Contents
 3.2. Protocol Flow
 
    The SciStream protocol follows a defined sequence of operations to establish,
-   maintain, and terminate data streaming sessions. This section describes the
+   maintain, and terminate data streaming sessions as illustrated in Figure 4:. This section describes the
    typical protocol flow for a streaming session.
+
+   S2UC            Producer S2CS      Consumer S2CS      Apps
+    |                   |                  |               |
+    |---REQUEST(UID)--->|                  |               |
+    |<----RESPONSE------|                  |               |
+    |                   |<----HELLO--------|<--HELLO-------|
+    |                   |----APPRESPONSE-->|---APPRESPONSE>|
+    |--UPDATETARGETS--->|                  |               |
+    |--UPDATETARGETS------------------>--->|               |
+    |                   |<-----TUNNEL----->|               |
+    |<----RESPONSE------|                  |               |
+    |<----RESPONSE-------------------------|               |
+    |                   |<======DATA STREAMING============>|
+    |----RELEASE------->|                  |               |
+    |----RELEASE---------------------->--->|               |
+    |<----RESPONSE------|                  |               |
+    |<----RESPONSE-------------------------|               |
+
+            Figure 4: Protocol Sequence Diagram
 
 3.2.1. Request Submission
 
-   The S2UC submits a REQUEST message to the S2CS to initiate a streaming
-   session. This message includes:
+   The S2UC initiates with REQUEST message to the S2CS. This message MUST include:
 
    1. A unique identifier (UID) for the session
    2. The role of the requester (PROD or CONS)
    3. The number of connections requested
-   4. Optional parameters like desired data rate
-
-   The S2CS processes this request by:
-
-   1. Authenticating the requester using OAUTH2.0
-   2. Verifying resource availability
-   3. Checking authorization for the requested resources
-   4. Allocating resources for the session
-   5. Generating a RESPONSE message with session details
-
-   The REQUEST/RESPONSE exchange follows the sequence diagram in Figure 4:
-
-   S2UC                          S2CS
-    |                             |
-    |------- REQUEST(UID) ------->|
-    |                             | -- Authenticate
-    |                             | -- Verify Resources
-    |                             | -- Allocate Resources
-    |<------ RESPONSE ------------|
-    |                             |
-
-             Figure 4: Request Submission Sequence
 
 3.2.2. Hello Message Exchange
 
@@ -482,28 +461,6 @@ Table of Contents
    2. For producers: the list of listener endpoints
    3. The role (PROD or CONS)
 
-   The S2CS processes HELLO messages by:
-
-   1. Authenticating the sender
-   2. Verifying the UID against active requests
-   3. Recording the connection details
-   4. Responding with an APPRESPONSE message
-
-   This exchange follows the sequence in Figure 5:
-
-   Producer App      Producer S2CS    Consumer S2CS    Consumer App
-       |                 |                 |                |
-       |---- HELLO ----->|                 |                |
-       |                 |                 |                |
-       |<-- APPRESPONSE -|                 |                |
-       |                 |                 |                |
-       |                 |                 |<---- HELLO ----|
-       |                 |                 |                |
-       |                 |                 |-- APPRESPONSE->|
-       |                 |                 |                |
-
-              Figure 5: Hello Message Exchange Sequence
-
 3.2.3. Tunnel Setup
 
    After the HELLO messages are processed, the S2UC sends an UPDATETARGETS
@@ -515,32 +472,6 @@ Table of Contents
    1. The session UID
    2. The list of remote listener endpoints
    3. The role (PROD or CONS)
-
-   The S2CS processes this message by:
-
-   1. Authenticating the sender
-   2. Verifying the UID against active requests
-   3. Forwarding connection details to the S2DS
-   4. Instructing the S2DS to establish the requested connections
-
-   This exchange follows the sequence in Figure 6:
-
-   S2UC            Producer S2CS    Consumer S2CS       S2DS
-    |                   |                |                |
-    |-- UPDATETARGETS ->|                |                |
-    |                   |                |                |
-    |                   |                |                |
-    |-- UPDATETARGETS ------------------>|                |
-    |                   |                |                |
-    |                   |                |-- Establish -->|
-    |                   |                |   Tunnel       |
-    |                   |                |                |
-    |<----- RESPONSE ---|                |                |
-    |                   |                |                |
-    |<---------------------- RESPONSE ---|                |
-    |                   |                |                |
-
-            Figure 6: Tunnel Establishment Sequence
 
 3.2.4. Data Streaming
 
@@ -569,32 +500,6 @@ Table of Contents
 
    1. The session UID to be released
 
-   The S2CS processes this message by:
-
-   1. Authenticating the sender
-   2. Verifying the UID against active requests
-   3. Instructing the S2DS to terminate connections
-   4. Releasing allocated resources
-   5. Removing the session from active sessions registry
-
-   This exchange follows the sequence in Figure 7:
-
-   S2UC            Producer S2CS    Consumer S2CS
-    |                   |                |
-    |--- RELEASE ------>|                |
-    |                   |                |
-    |                   |-- Terminate -->|
-    |                   |   Connections  |
-    |                   |                |
-    |--- RELEASE ----------------------->>|
-    |                   |                |
-    |<----- RESPONSE ---|                |
-    |                   |                |
-    |<---------------------- RESPONSE ---|
-    |                   |                |
-
-                Figure 7: Request Release Sequence
-
 4. Protocol Messages
 
    SciStream uses Protocol Buffers for message definition
@@ -612,147 +517,10 @@ Table of Contents
    - RESPONSE: Sent by S2CS in response to REQUEST and UPDATETARGETS commands
    - APPRESPONSE: Sent by S2CS in response to HELLO commands
 
-   The following sections provide detailed specifications for each message type.
-
-4.1.1. Request Message
-
-   The Request message is sent by the S2UC to initiate a streaming session.
-
-   ```protobuf
-   message Request {
-       string uid = 1;     // Unique identifier for the request
-       string role = 2;    // Role (PROD or CONS)
-       int32 num_conn = 3; // Number of connections requested
-       int32 rate = 4;     // Requested data rate (NOT_IMPLEMENTED)
-   }
-   ```
-
-   Field Descriptions:
-
-   - uid: A globally unique identifier for this request. MUST be unique
-         across all active requests in the system.
-   - role: Indicates the role of the requester. Valid values are "PROD"
-         (producer) and "CONS" (consumer).
-   - num_conn: The number of data connections requested for this session.
-         Must be greater than 0.
-   - rate: The requested data rate in Mbps. This field is currently not
-         implemented but reserved for future use.
-
-4.1.2. Response Message
-
-   The Response message is sent by the S2CS in response to REQUEST and
-   UPDATETARGETS messages.
-
-   ```protobuf
-   message Response {
-       repeated string listeners = 1;     // Available listener endpoints
-       repeated string prod_listeners = 2; // Producer listener endpoints
-   }
-   ```
-
-   Field Descriptions:
-
-   - listeners: A list of available listener endpoints on the S2DS.
-         Each endpoint is specified as "ip:port".
-   - prod_listeners: A list of producer listener endpoints. Only included
-         in responses to UPDATETARGETS messages.
-
-4.1.3. Hello Message
-
-   The Hello message is sent by application controllers to register their
-   endpoints with the S2CS.
-
-   ```protobuf
-   message Hello {
-       string uid = 1;                     // Request identifier
-       repeated string prod_listeners = 2; // Producer listener endpoints
-       string role = 3;                    // Role in the TLS authentication
-   }
-   ```
-
-   Field Descriptions:
-
-   - uid: The unique identifier matching the original request.
-   - prod_listeners: For producer applications, the list of listener
-         endpoints specified as "ip:port".
-   - role: Identifies the role of the sender in TLS authentication.
-         Used to determine authentication requirements.
-
-4.1.4. AppResponse Message
-
-   The AppResponse message is sent by the S2CS in response to HELLO messages.
-
-   ```protobuf
-   message AppResponse {
-       string message = 1;           // Status message
-       repeated string listeners = 2; // Available listener endpoints
-   }
-   ```
-
-   Field Descriptions:
-
-   - message: A human-readable status message.
-   - listeners: A list of available listener endpoints on the S2DS.
-         Each endpoint is specified as "ip:port".
-
-4.1.5. UpdateTargets Message
-
-   The UpdateTargets message is sent by the S2UC to provide connection
-   information to the S2CS.
-
-   ```protobuf
-   message UpdateTargets {
-       string uid = 1;                       // Request identifier
-       repeated string remote_listeners = 2; // Remote endpoints to connect to
-       string role = 3;                      // Role (PROD or CONS)
-   }
-   ```
-
-   Field Descriptions:
-
-   - uid: The unique identifier matching the original request.
-   - remote_listeners: A list of remote endpoints to connect to,
-         specified as "ip:port".
-   - role: Indicates the role of the sender. Valid values are "PROD"
-         (producer) and "CONS" (consumer).
-
-4.1.6. Release Message
-
-   The Release message is sent by the S2UC to terminate a streaming session.
-
-   ```protobuf
-   message Release {
-       string uid = 1; // Request identifier to release
-   }
-   ```
-
-   Field Descriptions:
-
-   - uid: The unique identifier of the session to be terminated.
-
 4.2. Service Definition
 
-   The SciStream service is defined using gRPC service definitions. The
-   primary service interface is as follows:
-
-   ```protobuf
-   service SciStreamControl {
-       // Request a new streaming session
-       rpc RequestStream(Request) returns (Response);
-
-       // Update connection targets
-       rpc UpdateTargets(UpdateTargets) returns (Response);
-
-       // Register application endpoints
-       rpc Hello(Hello) returns (AppResponse);
-
-       // Release a streaming session
-       rpc ReleaseStream(Release) returns (Response);
-   }
-   ```
-
-   This service definition specifies the RPC methods that can be called by
-   clients to interact with the SciStream Control Server.
+   The SciStream protocol defines a gRPC service for control channel communication.
+   This service exposes RPC methods for all major protocol operations.
 
 4.3. Protocol Buffer Schema
 
@@ -837,23 +605,17 @@ Table of Contents
 
    1. Zero-trust architecture: No component or entity is implicitly trusted
    2. Defense in depth: Multiple security layers protect critical assets
-   3. Principle of least privilege: Components have only the access needed
-   4. Secure by default: Security features are enabled by default
-   5. Explicit verification: All accesses require explicit verification
+   3. Explicit verification: All accesses require explicit verification
 
    The security model addresses several threat vectors:
 
    - Unauthorized access to control services
-   - Eavesdropping on control messages
-   - Tampering with control messages
-   - Impersonation of legitimate components
-   - Unauthorized access to data streams
-   - Eavesdropping on data streams
-   - Tampering with data streams
+   - Eavesdropping and tampering on control messages
+   - Eavesdropping and tampering on data streams
    - Replay attacks
    - Cross-domain security policy violations
 
-   Figure 8 illustrates the security layers in the SciStream protocol:
+   Figure 5 illustrates the security layers in the SciStream protocol:
 
    +----------------------+
    | Application Layer    |
@@ -870,7 +632,7 @@ Table of Contents
    | (OAUTH2.0 + TLS)     |
    +----------------------+
 
-        Figure 8: SciStream Security Layers
+        Figure 5: SciStream Security Layers
 
 5.2. Authentication Mechanisms
 
@@ -882,12 +644,11 @@ Table of Contents
    Authentication between SciStream Client and SciStream Control Server is based
    on OAUTH2.0 access tokens. This allows for delegation of authority but can
    also be considered an external dependency. Failure could cause unavailability.
+   SciStream client identities can be verified via OAUTH2.0 and federated
+   identity management is supported. The reference implementation leverages Globus Auth.
 
    Control channel security is implemented via TLS. SciStream server digital
    certificates can be verified by the SciStream clients.
-
-   SciStream client identities can be verified via OAUTH2.0 and federated
-   identity management is supported. The reference implementation leverages Globus Auth.
 
    The OAUTH2.0 process works the following way:
 
@@ -931,23 +692,6 @@ Table of Contents
    The UID MUST be generated using a cryptographically secure random number
    generator and SHOULD be at least 128 bits of entropy, typically represented
    as a 32-character hexadecimal string.
-
-5.2.3. Globus Auth Integration
-
-   The reference implementation of SciStream uses Globus Auth for federated
-   identity management. Globus Auth provides:
-
-   1. OAUTH2.0-compliant authentication
-   2. Support for multiple identity providers
-   3. Group-based authorization
-   4. Delegation of authority
-
-   SciStream implementations that use Globus Auth MUST follow the Globus
-   Auth integration guidelines and SHOULD implement appropriate fallback
-   mechanisms for scenarios where Globus Auth may be unavailable.
-
-   Other OAUTH2.0-compliant identity providers MAY be used instead of
-   Globus Auth, provided they support the required security features.
 
 5.3. Protection Mechanisms
 
@@ -1006,8 +750,8 @@ Table of Contents
    4. Secure authentication for all cross-domain communications
    5. End-to-end encryption of sensitive data
 
-   Each facility MAY implement additional security measures based on its
-   specific requirements and policies. These measures SHOULD be documented
+   Each facility MAY implement additional security measures such as ingress filtering
+   based on its specific requirements and policies. These measures SHOULD be documented
    and communicated to users of the facility.
 
    Administrators of SciStream deployments SHOULD conduct regular security
@@ -1032,14 +776,6 @@ Table of Contents
    2. Mitigating the impact of TCP slow-start on high-bandwidth links
    3. Providing better resilience against individual channel failures
    4. Improving load distribution across network paths
-
-   The optimal number of parallel channels depends on various factors,
-   including:
-
-   - Available network bandwidth
-   - Network path characteristics
-   - Hardware capabilities at both ends
-   - Data partitioning capabilities of applications
 
    SciStream implementations SHOULD provide guidance on selecting
    appropriate parallelism levels for different scenarios.
@@ -1081,38 +817,15 @@ Table of Contents
    the protocol to evolve to meet emerging requirements. Key extensibility
    features include:
 
-   1. **Protocol Buffer Extensibility**: Using Protocol Buffers for message
-      definitions allows for backward-compatible extensions by adding new
-      fields to existing messages.
-
-   2. **Component Independence**: The separation of S2UC, S2CS, and S2DS
-      allows individual components to be upgraded or replaced without
-      affecting the entire system.
-
-   3. **Authentication Mechanism Flexibility**: While the reference implementation
-      uses OAUTH2.0 with Globus Auth, SciStream can be extended to support
-      other authentication mechanisms.
-
-   4. **Data Channel Protocol Extensions**: The underlying data transmission
+   -  Protocol Buffer Extensibility: Using Protocol Buffers allows for
+      backward-compatible extensions by adding new fields to existing messages.
+   -  Component Independence: The separation of S2UC, S2CS, and S2DS
+      allows individual components to be upgraded or replaced independently.
+   -  Authentication Mechanism Flexibility: While the reference implementation
+      uses OAUTH2.0 with Globus Auth, other mechanisms can be supported.
+   -  Data Channel Protocol Extensions: The underlying data transmission
       protocols can be extended or replaced to accommodate new performance
       requirements or security features.
-
-   5. **Integration Points**: SciStream provides multiple integration points
-      for extensions:
-
-      - Application controller interfaces
-      - Data stream processing pipelines
-      - Monitoring and telemetry hooks
-      - Security policy enforcement
-
-   When extending SciStream, implementers SHOULD maintain backward compatibility
-   and follow these guidelines:
-
-   - Document extensions thoroughly
-   - Follow the established security model
-   - Preserve control and data plane separation
-   - Maintain the core authentication and authorization flows
-   - Consider cross-implementation compatibility
 
    Future standardization efforts MAY focus on defining a formal API between
    S2CS and S2DS components to further enhance interoperability between
@@ -1125,13 +838,11 @@ Table of Contents
    SciStream is designed to be agnostic to the specific streaming libraries
    used by applications. Implementations should consider:
 
-   - Transport-layer transparency to support any protocol over TCP
+   - Transport-layer transparency to support any protocol over TCP or UDP
    - Support for common streaming libraries (ZeroMQ, RabbitMQ, PVApy, etc.)
    - Minimal interference with application-level protocols
    - Testing with a variety of streaming libraries to ensure compatibility
    - Documentation of any known compatibility issues
-   - Integration with container platforms (Kubernetes, Docker, etc.)
-   - Compatibility with HPC job submission mechanisms
 
    This approach minimizes the modifications required to existing
    scientific applications while enabling integration with modern
@@ -1146,7 +857,7 @@ Table of Contents
    in SciStream. Consistent error reporting is essential for troubleshooting
    and interoperability.
 
-   Table 3 lists the standard error codes and their descriptions:
+   Table 1 lists the standard error codes and their descriptions:
 
    | Error Code      | Description                                        |
    |-----------------|----------------------------------------------------|
@@ -1163,7 +874,7 @@ Table of Contents
    | NOT_IMPLEMENTED | Requested feature not implemented                  |
    | UNAVAILABLE     | Service temporarily unavailable                    |
 
-                     Table 3: Standard Error Codes
+                     Table 1: Standard Error Codes
 
    Error responses SHOULD include both the error code and a human-readable
    message describing the error and, when appropriate, suggestions for
@@ -1319,7 +1030,7 @@ Appendix A. Protocol State Machines
            | Send UPDATETARGETS
            v
    +---------------+
-   | Connection     |
+   | Tunnel         |
    | Establishment  |
    +-------+-------+
            |
@@ -1377,7 +1088,7 @@ Appendix A. Protocol State Machines
            | Receive UPDATETARGETS
            v
    +---------------+
-   | Connection    |
+   | Tunnel        |
    | Setup         |
    +-------+-------+
            |
@@ -1402,47 +1113,6 @@ Appendix A. Protocol State Machines
    +---------------+
 
              Figure A-2: S2CS State Machine
-
-   A.3. S2DS State Machine
-
-   The S2DS follows the state machine illustrated in Figure A-3:
-
-   +---------------+
-   | Ready          |
-   +-------+-------+
-           |
-           | Receive connection setup from S2CS
-           v
-   +---------------+
-   | Connection    |
-   | Setup         |
-   +-------+-------+
-           |
-           | Connection established
-           v
-   +---------------+
-   | Connected      |
-   +-------+-------+
-           |
-           | Begin receiving/sending data
-           v
-   +---------------+
-   | Streaming      |
-   +-------+-------+
-           |
-           | Receive termination request from S2CS
-           v
-   +---------------+
-   | Terminating    |
-   +-------+-------+
-           |
-           | Connections closed
-           v
-   +---------------+
-   | Ready          |
-   +---------------+
-
-             Figure A-3: S2DS State Machine
 
 Appendix B. Implementation Examples
 
