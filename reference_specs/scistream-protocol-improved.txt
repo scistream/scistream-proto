@@ -21,25 +21,6 @@ Abstract
    initiatives such as real-time data analysis and experimental steering
    when processing requirements exceed their local capacity.
 
-
-Status of This Document
-
-   This document is an Internet-Draft and is subject to the provisions
-   of Section 10 of RFC 2026.
-
-   Internet-Drafts are working documents of the Internet Engineering Task
-   Force (IETF), its areas, and its working groups. Note that other
-   groups may also distribute working documents as Internet-Drafts.
-
-   The list of current Internet-Drafts can be accessed at
-   http://www.ietf.org/1id-abstracts.html
-
-   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
-   "OPTIONAL" in this document are to be interpreted as described in
-   [RFC2119].
-
-
 Table of Contents
 
    1. Introduction ....................................................4
@@ -71,21 +52,19 @@ Table of Contents
          5.2.3. Globus Auth Integration ............................25
       5.3. Protection Mechanisms ....................................25
          5.3.1. Data Integrity Protection ...........................25
-         5.3.2. Data Confidentiality Protection .....................26
       5.4. Cross-Domain Security ....................................27
    6. Performance Considerations ....................................28
       6.1. Parallel Streaming Channels ..............................28
    7. Implementation Considerations .................................30
       7.1. Implementation Flexibility ...............................30
-      7.2. Extensibility ............................................31 
+      7.2. Extensibility ............................................31
       7.3. Interoperability ........................................31
          7.3.1. Streaming Library Compatibility .....................31
    8. Error Codes and Status Messages ...............................34
-   9. IANA Considerations ..........................................36
-  10. Security Considerations ......................................36
-  11. References ...................................................37
-      11.1. Normative References ....................................37
-      11.2. Informative References ..................................37
+  9. Security Considerations ......................................36
+  10. References ...................................................37
+      10.1. Normative References ....................................37
+      10.2. Informative References ..................................37
   Appendix A. Protocol State Machines ..............................38
   Appendix B. Implementation Examples ..............................41
   Appendix C. Acknowledgements .....................................42
@@ -93,11 +72,10 @@ Table of Contents
 
 1. Introduction
 
-   This document defines the SciStream Protocol, which enables secure data streaming
-   between scientific facilities. SciStream allows a third-party client
-   to control how incoming data flows are forwarded by an upstream device.
-   Additionally it provides a mechanism for data channel security via the use of
-   ephemeral credentials per session.
+   This document defines the SciStream Protocol, enabling secure data streaming
+   between scientific facilities by allowing third-party clients
+   to control data flow forwarding and data channel security by use of ephemeral
+   credentials per session.
 
    SciStream is designed to be implemented in the context of computing facilities
    APIs that require secure streaming and service registration as well as
@@ -312,9 +290,8 @@ Table of Contents
 
 3.1.1. SciStream User Client (S2UC)
 
-   The SciStream User Client (S2UC) serves as the primary interface for users
-   to interact with the SciStream infrastructure. It performs the following
-   functions:
+   The SciStream User Client (S2UC) allows agents to interact with the SciStream
+   infrastructure by performing the following functions:
 
    - Authenticates users to the S2CS using OAUTH2.0
    - Generates and submits REQUEST messages to authorize data streaming
@@ -673,15 +650,11 @@ Table of Contents
    The data channel authentication process works as follows:
 
    1. S2UC generates a unique UID for each request.
-
    2. The user provides this UID to both producer and consumer application
       controllers.
-
    3. Application controllers include the UID in their Hello messages
       to S2CS.
-
    4. S2CS validates the UID against its record of active requests.
-
    5. If the UID is valid, S2CS accepts the Hello message and proceeds
       with the connection setup. If not, S2CS returns an authentication
       error.
@@ -708,35 +681,7 @@ Table of Contents
       protection for all control messages between S2UC and S2CS.
 
    2. Data Channel Integrity: S2DS implementations MAY provide configurable
-      integrity protection for data streams. Options include:
-
-      - TLS-based integrity protection
-      - Message Authentication Codes (MACs)
-      - Digital signatures
-
-   The level of integrity protection for data streams can be configured
-   based on the sensitivity of the data and the performance requirements.
-
-5.3.2. Data Confidentiality Protection
-
-   Data confidentiality protection ensures that messages and data streams
-   cannot be read by unauthorized parties. SciStream provides the
-   following confidentiality protection mechanisms:
-
-   1. Control Channel Confidentiality: gRPC over TLS provides
-      confidentiality protection for all control messages between S2UC
-      and S2CS.
-
-   2. Data Channel Confidentiality: S2DS implementations MAY provide
-      configurable confidentiality protection for data streams. Options
-      include:
-
-      - TLS-based encryption
-      - Application-layer encryption
-
-   The level of confidentiality protection for data streams can be
-   configured based on the sensitivity of the data and the performance
-   requirements.
+      integrity protection for data streams. We suggest TLS-based protection.
 
 5.4. Cross-Domain Security
 
@@ -781,9 +726,6 @@ Table of Contents
    appropriate parallelism levels for different scenarios.
 
 7. Implementation Considerations
-
-   This section provides guidance for implementing SciStream components
-   and deploying SciStream in various environments.
 
 7.1. Implementation Flexibility
 
@@ -915,11 +857,7 @@ Table of Contents
    troubleshooting, but SHOULD avoid exposing sensitive information in
    error messages returned to clients.
 
-9. IANA Considerations
-
-   This document has no IANA considerations.
-
-10. Security Considerations
+9. Security Considerations
 
     SciStream is designed with security as a primary consideration. However,
     implementers should be aware of the following security considerations:
@@ -960,9 +898,9 @@ Table of Contents
     For comprehensive security, all SciStream deployments SHOULD undergo
     regular security audits and penetration testing.
 
-11. References
+10. References
 
-11.1. Normative References
+10.1. Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -973,7 +911,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-11.2. Informative References
+10.2. Informative References
 
    [RFC2228]  Horowitz, M. and S. Lunt, "FTP Security Extensions",
               RFC 2228, DOI 10.17487/RFC2228, October 1997,
@@ -1249,22 +1187,3 @@ Appendix B. Implementation Examples
    using standard components. The actual implementation can be extended
    or modified to suit specific deployment requirements while maintaining
    protocol compatibility.
-
-Appendix C. Acknowledgements
-
-   The authors would like to thank the following individuals for their valuable
-   contributions and feedback:
-
-   - The SciStream Team members who provided technical input and review
-   - The scientific facilities that participated in early testing
-   - The networking communities that provided guidance on protocol design
-   - The security experts who reviewed the security framework
-
-Authors' Addresses
-
-   F. Junior
-   SciStream Team
-   Email: fjunior@scistream.org
-
-   SciStream Team
-   Email: info@scistream.org
