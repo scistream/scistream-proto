@@ -1,4 +1,8 @@
 import logging
+import os
+import re
+import shutil
+import subprocess
 import sys
 import fire
 import grpc
@@ -232,6 +236,8 @@ def start(
         port_range: Hyphenated string specifying the port range for S2DS. Defaults to "5100-5200"
         type (str): Specifies the type of server to start. Options are 'S2DS', 'Nginx', 'Haproxy', 'StunnelSubprocess'.
                     'Haproxy' is the default type.
+                    Note: If using 'StunnelSubprocess', ensure you have the correct version installed.
+                    Use the 's2cs install-stunnel' command to install.
         v or verbose (bool): Enables detailed logging and debug output . Defaults to False.
         client_id (str): Client ID for Globus Auth. Defaults to value of 'default_cid'.
         client_secret (str): Client secret for Globus Auth. Defaults to value of 'default_secret'.
@@ -285,8 +291,32 @@ def start(
         print("\nTerminating server")
         sys.exit(0)
 
+def install_stunnel():
+    """Install stunnel 5.67 on Linux"""
+    version = "5.67"
+    print(f"Installing stunnel {version}...")
+    
+    # Quick version check
+    result = subprocess.run(["stunnel", "-version"], capture_output=True, text=True, check=False)
+    if result.returncode == 0:
+        print("stunnel already installed")
+        return True
+    
+    # Install on Linux
+    if os.path.exists("/etc/debian_version"):
+        cmd = ["sudo", "apt-get", "install", "-y", "stunnel4=1:5.67-2"]
+    else:
+        cmd = ["sudo", "yum", "install", "-y", "stunnel-5.67"]
+    
+    subprocess.run(cmd, check=False)
+    print("Stunnel installation complete")
+    return True
+
 def main():
-    fire.Fire(start)
+    fire.Fire({
+        "start": start,
+        "install-stunnel": install_stunnel
+    })
 
 
 if __name__ == "__main__":

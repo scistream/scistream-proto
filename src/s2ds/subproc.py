@@ -1,5 +1,8 @@
 import logging
+import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from src.s2ds.utils import get_config_path
 from jinja2 import Environment, FileSystemLoader
@@ -78,6 +81,12 @@ class StunnelSubprocess(AbstractSubprocess):
         super().__init__(logger)
         self.cfg_filename = "stunnel.conf"
         self.command = ["stunnel"]
+        
+        # Basic stunnel check
+        result = subprocess.run(["stunnel", "-version"], capture_output=True, text=True, check=False)
+        if result.returncode != 0:
+            print("stunnel not found. Run 's2cs install-stunnel' first.")
+            raise RuntimeError("stunnel not installed")
 
 class HaproxySubprocess(AbstractSubprocess):
     def __init__(self, logger=None):
